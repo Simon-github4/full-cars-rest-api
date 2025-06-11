@@ -1,0 +1,39 @@
+package com.fullcars.restapi.service;
+
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
+import com.fullcars.restapi.model.Provider;
+import com.fullcars.restapi.repository.IProviderRepository;
+
+import jakarta.persistence.EntityNotFoundException;
+
+@Service
+public class ProviderService {
+
+	private IProviderRepository providerRepo;
+	
+	public ProviderService(IProviderRepository repo) {
+		this.providerRepo = repo;
+	}
+	
+	public Provider save(Provider c) {
+		return providerRepo.save(c);
+	}
+	
+	public void delete(Long id) {
+        if (!providerRepo.existsById(id)) 
+            throw new EntityNotFoundException("Proveedor no encontrada con id: " + id);
+        providerRepo.deleteById(id);
+	}
+	
+	public Provider findByIdOrThrow(Long id) {
+		return providerRepo.findById(id).orElseThrow(() -> 
+						new EntityNotFoundException("Proveedor no encontrada con id: " + id));
+	}
+	
+	public List<Provider> getCategories(){
+		return providerRepo.findAll();
+	}
+}
