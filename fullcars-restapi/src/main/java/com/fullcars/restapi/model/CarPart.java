@@ -32,9 +32,9 @@ public class CarPart {
     private String sku;
     private long stock;
 
-    @ManyToOne(fetch=FetchType.LAZY)
+    @ManyToOne//(fetch=FetchType.LAZY)  -----> Problems with JSON Response
     private Category category;
-    @ManyToOne(fetch=FetchType.LAZY)
+    @ManyToOne//(fetch=FetchType.LAZY)
     private Brand brand;
 
     //private int purchasePrice;

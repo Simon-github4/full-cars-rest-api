@@ -1,6 +1,8 @@
 package com.fullcars.restapi.service;
 
 import java.util.List;
+
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import com.fullcars.restapi.model.CarPart;
 import com.fullcars.restapi.repository.ICarPartRepository;
@@ -30,7 +32,12 @@ private ICarPartRepository carPartRepo;
 						new EntityNotFoundException("Auto Parte no encontrada con id: " + id));
 	}
 	
+	public CarPart findBySku(String sku) {
+		return carPartRepo.findBySku(sku).orElseThrow(() -> 
+						new EntityNotFoundException("Auto Parte no encontrada con sku: " + sku));
+	}
+	
 	public List<CarPart> getCarParts(){
-		return carPartRepo.findAll();
+		return carPartRepo.findAll(Sort.by(Sort.Direction.DESC, "id"));
 	}
 }
