@@ -3,8 +3,14 @@ package com.fullcars.restapi.service;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
+import com.fullcars.restapi.event.PayEvent;
+import com.fullcars.restapi.event.SaleEvent;
 import com.fullcars.restapi.model.Customer;
+import com.fullcars.restapi.model.Pay;
+import com.fullcars.restapi.model.Sale;
 import com.fullcars.restapi.repository.ICustomerRepository;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -16,6 +22,18 @@ public class CustomerService {
 	
 	public CustomerService(ICustomerRepository repo) {
 		this.customerRepo = repo;
+	}
+	
+	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+	public void handleSaleEvent(SaleEvent e) {
+		Sale sale = e.getEntity();
+		System.err.println("SaleEvent REceived!!!" + e.getSource());
+	}
+	
+	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+	public void handlePayEvent(PayEvent e) {
+		Pay sale = e.getEntity();
+		System.err.println("PayEvent REceived!!!" + e.getSource());
 	}
 	
 	public Customer save(Customer c) {

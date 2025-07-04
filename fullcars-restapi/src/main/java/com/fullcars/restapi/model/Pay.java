@@ -22,7 +22,7 @@ public class Pay {
 	@Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
-    private int amount;
+    private Long amount;
     private LocalDate date;
     private String payMethod;
     

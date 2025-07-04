@@ -1,23 +1,24 @@
 package com.fullcars.restapi.service;
 
 import java.util.List;
-
 import org.springframework.stereotype.Service;
-import com.fullcars.restapi.model.Detail;
-import com.fullcars.restapi.repository.IDetailRepository;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.fullcars.restapi.model.SaleDetail;
+import com.fullcars.restapi.repository.ISaleDetailRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 
 @Service
-public class DetailService {
+public class SaleDetailService {
 	
-	private IDetailRepository detailRepo;
+	private ISaleDetailRepository detailRepo;
 	
-	public DetailService(IDetailRepository repo) {
+	public SaleDetailService(ISaleDetailRepository repo) {
 		this.detailRepo = repo;
 	}
 	
-	public Detail save(Detail c) {
+	public SaleDetail save(SaleDetail c) {
 		return detailRepo.save(c);
 	}
 	
@@ -27,12 +28,14 @@ public class DetailService {
         detailRepo.deleteById(id);
 	}
 	
-	public Detail findByIdOrThrow(Long id) {
+    @Transactional(readOnly = true)
+	public SaleDetail findByIdOrThrow(Long id) {
 		return detailRepo.findById(id).orElseThrow(() -> 
 						new EntityNotFoundException("Detalle no encontrada con id: " + id));
 	}
 	
-	public List<Detail> getDetails(){
+    @Transactional(readOnly = true)
+	public List<SaleDetail> getDetails(){
 		return detailRepo.findAll();
 	}
 }

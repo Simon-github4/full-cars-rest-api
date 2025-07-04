@@ -3,8 +3,12 @@ package com.fullcars.restapi.service;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
+import com.fullcars.restapi.event.PurchaseEvent;
 import com.fullcars.restapi.model.Provider;
+import com.fullcars.restapi.model.Purchase;
 import com.fullcars.restapi.repository.IProviderRepository;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -16,6 +20,12 @@ public class ProviderService {
 	
 	public ProviderService(IProviderRepository repo) {
 		this.providerRepo = repo;
+	}
+	
+	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+	public void onApplicationEvent(PurchaseEvent e) {
+		Purchase sale = e.getEntity();
+		System.err.println("PurchaseEvent REceived!!!" + e.getSource());
 	}
 	
 	public Provider save(Provider c) {

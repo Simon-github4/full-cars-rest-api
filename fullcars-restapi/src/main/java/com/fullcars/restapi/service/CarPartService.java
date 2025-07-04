@@ -5,7 +5,10 @@ import java.util.List;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
+import com.fullcars.restapi.event.StockMovementEvent;
 import com.fullcars.restapi.model.CarPart;
 import com.fullcars.restapi.repository.ICarPartRepository;
 
@@ -20,7 +23,12 @@ private ICarPartRepository carPartRepo;
 		this.carPartRepo = repo;
 	}
 	
-	@Transactional
+	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+	public void handleStockMovementEvent(StockMovementEvent e) {
+		
+	}
+	
+	@Transactional	
 	public CarPart save(CarPart c) {
 		CarPart part = carPartRepo.save(c);
 		
