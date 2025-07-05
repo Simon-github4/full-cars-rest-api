@@ -19,12 +19,12 @@ public class PurchaseDetailService {
 		this.detailRepo = repo;
 	}
 	
-	@Transactional(readOnly = true)
+	@Transactional
 	public PurchaseDetail save(PurchaseDetail c) {
 		return detailRepo.save(c);
 	}
 	
-	@Transactional(readOnly = true)
+	@Transactional
 	public void delete(Long id) {
         if (!detailRepo.existsById(id)) 
             throw new EntityNotFoundException("Detalle no encontrado con id: " + id);

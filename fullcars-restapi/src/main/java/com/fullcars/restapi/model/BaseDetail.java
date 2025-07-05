@@ -22,4 +22,7 @@ public abstract class BaseDetail {
     
     @ManyToOne(optional = false)
     private CarPart product;
+    
+    public abstract String getTableName() ;
+    
 }

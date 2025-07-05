@@ -20,6 +20,7 @@ import com.fullcars.restapi.event.PurchaseEvent;
 import com.fullcars.restapi.event.SaleDetailEvent;
 import com.fullcars.restapi.event.SaleEvent;
 import com.fullcars.restapi.event.StockMovementEvent;
+import com.fullcars.restapi.model.BaseDetail;
 import com.fullcars.restapi.model.Purchase;
 import com.fullcars.restapi.model.PurchaseDetail;
 import com.fullcars.restapi.model.Sale;
@@ -39,14 +40,41 @@ public class StockMovementService {//implements ApplicationListener<SaleEvent>{
 
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	public void handleSaleEvent(SaleDetailEvent e) {
-		SaleDetail sale = e.getEntity();
 		System.err.println("SaleDetailEvent REceived!!!" + e.getSource());
+		SaleDetail detail = e.getEntity();
+		if(e.getEventType() == EventType.INSERT) {
+			StockMovement move = StockMovement.builder()
+					.id(null)
+					.carPart(detail.getProduct())
+					.quantity(detail.getQuantity())
+					.date(detail.getSale().getDate())
+					.reference("Venta "+ detail.getSale().getDate().toString() +", "+ detail.getSale().getCustomer())
+					.type(MovementType.SALIDA_VENTA)
+					.saleDetail(detail)
+					.build();
+			save(move);
+		}else if(e.getEventType() == EventType.DELETE) 
+			deleteByDetail(detail);
 	}
+	
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	public void handleSaleEvent(PurchaseDetailEvent e) {
-		PurchaseDetail sale = e.getEntity();
 		System.err.println("PurchaseDetailEvent REceived!!!" + e.getSource());
-	}
+		PurchaseDetail detail = e.getEntity();
+		if(e.getEventType() == EventType.INSERT) {
+			StockMovement move = StockMovement.builder()
+					.id(null)
+					.carPart(detail.getProduct())
+					.date(detail.getPurchase().getDate())
+					.quantity(detail.getQuantity())
+					.reference("Compra "+ detail.getPurchase().getDate().toString() +", "+ detail.getPurchase().getProvider())
+					.type(MovementType.ENTRADA_COMPRA)
+					.purchaseDetail(detail)
+					.build();
+			save(move);
+		}else if(e.getEventType() == EventType.DELETE) 
+			deleteByDetail(detail);
+	}	
 	
 	@Transactional
 	public StockMovement save(StockMovement sm) {
@@ -57,9 +85,25 @@ public class StockMovementService {//implements ApplicationListener<SaleEvent>{
 	
 	@Transactional
 	public void delete(Long id) {
-        if (!stockRepo.existsById(id)) 
-            throw new EntityNotFoundException("Movimiento no encontrada con id: " + id);
+        StockMovement move = stockRepo.findById(id).orElseThrow(()-> 
+        			new EntityNotFoundException("Movimiento no encontrada con id: " + id)); 
         stockRepo.deleteById(id);
+		appEventPublisher.publishEvent(new StockMovementEvent(this, move, EventType.DELETE));
+	}
+
+	@Transactional
+	public void deleteByDetail(PurchaseDetail d) {
+        StockMovement move = stockRepo.findByPurchaseDetail(d).orElseThrow(()-> 
+					new EntityNotFoundException("Movimiento no encontrado")); 
+        stockRepo.delete(move);
+        appEventPublisher.publishEvent(new StockMovementEvent(this, move, EventType.DELETE));
+	}
+	@Transactional
+	public void deleteByDetail(SaleDetail d) {
+        StockMovement move = stockRepo.findBySaleDetail(d).orElseThrow(()-> 
+					new EntityNotFoundException("Movimiento no encontrado")); 
+        stockRepo.delete(move);
+        appEventPublisher.publishEvent(new StockMovementEvent(this, move, EventType.DELETE));
 	}
 	
 	@Transactional(readOnly = true)

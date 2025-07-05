@@ -18,6 +18,8 @@ public class SaleDetailService {
 		this.detailRepo = repo;
 	}
 	
+	
+	
 	public SaleDetail save(SaleDetail c) {
 		return detailRepo.save(c);
 	}
