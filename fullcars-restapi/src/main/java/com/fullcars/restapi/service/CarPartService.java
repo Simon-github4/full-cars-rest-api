@@ -8,8 +8,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+import com.fullcars.restapi.enums.EventType;
 import com.fullcars.restapi.event.StockMovementEvent;
 import com.fullcars.restapi.model.CarPart;
+import com.fullcars.restapi.model.StockMovement;
 import com.fullcars.restapi.repository.ICarPartRepository;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -25,7 +27,10 @@ private ICarPartRepository carPartRepo;
 	
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	public void handleStockMovementEvent(StockMovementEvent e) {
-		
+		Long idPart = e.getEntity().getCarPart().getId();
+		CarPart part = findByIdOrThrow(idPart);
+		part.setStock(e.getCurrentStock());
+		save(part);
 	}
 	
 	@Transactional	

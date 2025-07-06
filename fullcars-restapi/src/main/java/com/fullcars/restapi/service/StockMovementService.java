@@ -3,11 +3,7 @@ package com.fullcars.restapi.service;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.boot.context.event.ApplicationStartedEvent;
-import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
@@ -16,14 +12,9 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import com.fullcars.restapi.enums.EventType;
 import com.fullcars.restapi.enums.MovementType;
 import com.fullcars.restapi.event.PurchaseDetailEvent;
-import com.fullcars.restapi.event.PurchaseEvent;
 import com.fullcars.restapi.event.SaleDetailEvent;
-import com.fullcars.restapi.event.SaleEvent;
 import com.fullcars.restapi.event.StockMovementEvent;
-import com.fullcars.restapi.model.BaseDetail;
-import com.fullcars.restapi.model.Purchase;
 import com.fullcars.restapi.model.PurchaseDetail;
-import com.fullcars.restapi.model.Sale;
 import com.fullcars.restapi.model.SaleDetail;
 import com.fullcars.restapi.model.StockMovement;
 import com.fullcars.restapi.repository.IStockMovementRepository;
@@ -79,7 +70,7 @@ public class StockMovementService {//implements ApplicationListener<SaleEvent>{
 	@Transactional
 	public StockMovement save(StockMovement sm) {
 		StockMovement saved = stockRepo.save(sm);
-		appEventPublisher.publishEvent(new StockMovementEvent(this, saved, EventType.INSERT));
+		appEventPublisher.publishEvent(new StockMovementEvent(this, saved, EventType.INSERT, getCurrentStockByCarPartId(saved.getCarPart().getId())));
 		return saved;
 	}
 	
@@ -88,7 +79,7 @@ public class StockMovementService {//implements ApplicationListener<SaleEvent>{
         StockMovement move = stockRepo.findById(id).orElseThrow(()-> 
         			new EntityNotFoundException("Movimiento no encontrada con id: " + id)); 
         stockRepo.deleteById(id);
-		appEventPublisher.publishEvent(new StockMovementEvent(this, move, EventType.DELETE));
+		appEventPublisher.publishEvent(new StockMovementEvent(this, move, EventType.DELETE, getCurrentStockByCarPartId(move.getCarPart().getId())));
 	}
 
 	@Transactional
@@ -96,14 +87,14 @@ public class StockMovementService {//implements ApplicationListener<SaleEvent>{
         StockMovement move = stockRepo.findByPurchaseDetail(d).orElseThrow(()-> 
 					new EntityNotFoundException("Movimiento no encontrado")); 
         stockRepo.delete(move);
-        appEventPublisher.publishEvent(new StockMovementEvent(this, move, EventType.DELETE));
+        appEventPublisher.publishEvent(new StockMovementEvent(this, move, EventType.DELETE, getCurrentStockByCarPartId(move.getCarPart().getId())));
 	}
 	@Transactional
 	public void deleteByDetail(SaleDetail d) {
         StockMovement move = stockRepo.findBySaleDetail(d).orElseThrow(()-> 
 					new EntityNotFoundException("Movimiento no encontrado")); 
         stockRepo.delete(move);
-        appEventPublisher.publishEvent(new StockMovementEvent(this, move, EventType.DELETE));
+        appEventPublisher.publishEvent(new StockMovementEvent(this, move, EventType.DELETE, getCurrentStockByCarPartId(move.getCarPart().getId())));
 	}
 	
 	@Transactional(readOnly = true)
@@ -115,6 +106,11 @@ public class StockMovementService {//implements ApplicationListener<SaleEvent>{
 	@Transactional(readOnly = true)
 	public List<StockMovement> getStockMovements(){
 		return stockRepo.findAll();
+	}
+	
+	public Long getCurrentStockByCarPartId(Long id) {
+		Long stock = stockRepo.getCurrentStockByCarPartId(id);
+		return stock != null ? stock : 0;
 	}
 	
 }

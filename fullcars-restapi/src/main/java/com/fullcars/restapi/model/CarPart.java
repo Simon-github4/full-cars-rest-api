@@ -2,7 +2,6 @@ package com.fullcars.restapi.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -30,7 +29,8 @@ public class CarPart {
     @NotBlank(message = "El SKU no puede estar vacío")//ppor si se aplica @Valid
     @Column(unique = true, nullable = false)
     private String sku;
-    private long stock;
+	
+    private Long stock = 0L;
 
     @ManyToOne//(fetch=FetchType.LAZY)  -----> Problems with JSON Response
     private Category category;
