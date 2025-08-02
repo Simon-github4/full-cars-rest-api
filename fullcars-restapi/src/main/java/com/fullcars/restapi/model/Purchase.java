@@ -27,7 +27,6 @@ public class Purchase {
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "purchase_id")
     private Long id;
-
     private LocalDate date;
     private BigDecimal taxes;
     private String observations;
@@ -35,6 +34,9 @@ public class Purchase {
     //private String factura / remito Url;
     @ManyToOne
     private Provider provider;
+    private String companyNameSnapshot;
+    private String cuitSnapshot;
+    private String adressSnapshot;
 
     @OneToMany(mappedBy = "purchase", fetch = FetchType.EAGER)
     private List<PurchaseDetail> details;

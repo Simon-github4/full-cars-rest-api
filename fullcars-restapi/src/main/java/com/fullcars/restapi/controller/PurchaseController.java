@@ -31,17 +31,17 @@ private PurchaseDetailService detailsService;
 	
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
-	public Purchase post(@RequestBody Purchase b) {
-		return purchaseService.save(b);
+	public Purchase post(@RequestBody Purchase b, @PathVariable Long idProvider) {
+		return purchaseService.save(b, idProvider);
 	}
 //----------------PODRIAN SER EL MISMO, USAN EL MISMO METODO SAVE-------------------------
-	@PutMapping("/{id}")
+	/*@PutMapping("/{id}")
 	@ResponseStatus(HttpStatus.OK)
 	public Purchase put(@PathVariable Long id, @RequestBody Purchase b) {
 		if (!id.equals(b.getId())) 
             throw new IllegalArgumentException("El ID enviado y el ID de la Compra deben coincidir");
         return purchaseService.save(b);
-    }
+    }*/
 	
 	@GetMapping("/{id}")
 	@ResponseStatus(HttpStatus.OK)

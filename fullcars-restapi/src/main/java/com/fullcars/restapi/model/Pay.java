@@ -24,7 +24,7 @@ public class Pay {
     private Long id;
     private Long amount;
     private LocalDate date;
-    private String payMethod;
+    private String paymentMethod;
     
     @ManyToOne
     private Customer customer;

@@ -1,5 +1,7 @@
 package com.fullcars.restapi.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -12,6 +14,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @MappedSuperclass
+@JsonIgnoreProperties(ignoreUnknown = true)
 public abstract class BaseDetail {
 	
 	@Id
@@ -23,6 +26,7 @@ public abstract class BaseDetail {
     @ManyToOne(optional = false)
     private CarPart product;
     
-    public abstract String getTableName() ;
-    
+    public float getSubTotal() {
+    	return quantity * unitPrice ;
+    }
 }

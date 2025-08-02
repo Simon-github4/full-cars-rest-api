@@ -17,7 +17,7 @@ public class Customer {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
     
-    private Long balance;
+   // private Long balance;
     private String fullName;
     private String dni;
     private String cuit;

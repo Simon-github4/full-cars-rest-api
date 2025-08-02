@@ -20,6 +20,7 @@ public class CustomerService {
 	
 	private ICustomerRepository customerRepo;
 	
+	
 	public CustomerService(ICustomerRepository repo) {
 		this.customerRepo = repo;
 	}
@@ -53,5 +54,10 @@ public class CustomerService {
 	
 	public List<Customer> getCustomers(){
 		return customerRepo.findAll();
+	}
+
+	public Customer findByDniOrThrow(String dni) {
+		return customerRepo.findByDni(dni).orElseThrow(() -> 
+				new EntityNotFoundException("Cleinte no encontrado con dni: " + dni));
 	}
 }

@@ -1,5 +1,6 @@
 package com.fullcars.restapi.service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -111,6 +112,10 @@ public class StockMovementService {//implements ApplicationListener<SaleEvent>{
 	public Long getCurrentStockByCarPartId(Long id) {
 		Long stock = stockRepo.getCurrentStockByCarPartId(id);
 		return stock != null ? stock : 0;
+	}
+
+	public List<StockMovement> getStockMovementsBetween(LocalDate start, LocalDate end) {
+		return stockRepo.findByDateBetween(start, end);
 	}
 	
 }

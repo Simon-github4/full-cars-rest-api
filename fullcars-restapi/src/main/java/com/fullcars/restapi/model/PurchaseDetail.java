@@ -15,14 +15,8 @@ import lombok.NoArgsConstructor;
 @Table(name = "purchase_details")
 public class PurchaseDetail extends BaseDetail{
 
-	private static final String TABLE_NAME = "purchase_details";
-
     @ManyToOne(optional = false, fetch = FetchType.EAGER)
     @JoinColumn(name = "purchase_id")
     private Purchase purchase;
-
-	@Override
-	public String getTableName() {
-		return TABLE_NAME;
-	}
+    
 }

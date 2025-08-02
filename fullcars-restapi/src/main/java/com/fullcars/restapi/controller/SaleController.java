@@ -1,7 +1,9 @@
 package com.fullcars.restapi.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -33,23 +36,16 @@ private SaleDetailService detailsService;
 	@GetMapping(value = "/event")
 	@ResponseStatus(HttpStatus.OK)
 	public void event() {
-		saleService.save(new Sale());
+		saleService.save(new Sale(), 1L);
 		detailsService.save(new SaleDetail());
 	}
 	
-	@PostMapping
+	@PostMapping("/{idCustomer}")
 	@ResponseStatus(HttpStatus.CREATED)
-	public Sale post(@RequestBody Sale b) {
-		return saleService.save(b);
+	public Sale post(@RequestBody Sale sale, @PathVariable Long idCustomer) {
+		sale.getDetails().forEach(d -> d.setSale(sale));
+		return saleService.save(sale, idCustomer);
 	}
-
-	@PutMapping("/{id}")
-	@ResponseStatus(HttpStatus.OK)
-	public Sale put(@PathVariable Long id, @RequestBody Sale b) {
-		if (!id.equals(b.getId())) 
-            throw new IllegalArgumentException("El ID enviado y el ID de la Venta deben coincidir");
-        return saleService.save(b);
-    }
 	
 	@GetMapping("/{id}")
 	@ResponseStatus(HttpStatus.OK)
@@ -62,6 +58,15 @@ private SaleDetailService detailsService;
 	public List<Sale> getSales(){
 		return saleService.getSales();
 	}
+	
+	@GetMapping("/filters")
+	@ResponseStatus(HttpStatus.OK)
+	public List<Sale> getSalesFiltered(
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+		    @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end,
+		    @RequestParam(required = false) Long idCustomer) {
+		return saleService.getSales(start, end, idCustomer);
+	}	
 	
 	@DeleteMapping("/{id}")
 	public void deleteSale(@PathVariable Long id) {

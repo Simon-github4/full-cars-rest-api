@@ -1,5 +1,7 @@
 package com.fullcars.restapi.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -13,16 +15,15 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "sale_details")
 public class SaleDetail extends BaseDetail{
-
-	private static final String TABLE_NAME = "sale_details";
 	
+    @JsonBackReference
 	@ManyToOne(optional = false, fetch = FetchType.EAGER)
     @JoinColumn(name = "sale_id")
 	private Sale sale;
 
-	@Override
-	public String getTableName() {
-		return TABLE_NAME;
-	}
+	//@Override
+	//public String getTableName() {
+	//	return "sale_details";
+	//}
 
 }

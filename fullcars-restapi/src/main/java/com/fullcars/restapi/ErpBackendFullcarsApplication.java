@@ -14,6 +14,7 @@ public class ErpBackendFullcarsApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(ErpBackendFullcarsApplication.class, args);
+		
 	}
 
 }

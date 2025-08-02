@@ -3,6 +3,7 @@ package com.fullcars.restapi.exceptionHandler;
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,7 +29,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<String> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
-        return ResponseEntity.status(500).body(ex.getMessage());
+        String message = "No se pudo completar la operación. Verifica que los datos estén relacionados correctamente.";
+        
+        if (ex.getCause() instanceof ConstraintViolationException &&
+            ex.getCause().getCause() != null &&
+            ex.getCause().getCause().getMessage().contains("foreign key")) {
+            
+            message = "No se pudo completar la operación porque los datos están relacionados con otros registros.";
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(message);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)//si uso @Valid

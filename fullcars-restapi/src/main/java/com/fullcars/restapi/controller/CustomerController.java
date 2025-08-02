@@ -10,11 +10,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fullcars.restapi.service.CustomerService;
 import com.fullcars.restapi.model.Customer;
+import com.fullcars.restapi.service.CustomerService;
 
 @RestController
 @RequestMapping(value = "/customers")
@@ -42,13 +43,19 @@ public class CustomerController {
 	
 	@GetMapping("/{id}")
 	@ResponseStatus(HttpStatus.OK)
-	public Customer getCustomer(@PathVariable Long id){
+	public Customer getCustomerById(@PathVariable Long id){
 		return customerService.findByIdOrThrow(id);
+	}
+	
+	@GetMapping(params = "dni")
+	@ResponseStatus(HttpStatus.OK)
+	public Customer getCustomerByDni(@RequestParam String dni){
+		return customerService.findByDniOrThrow(dni);
 	}
 	
 	@GetMapping
 	@ResponseStatus(HttpStatus.OK)
-	public List<Customer> getCustomers(){
+	public List<Customer> getAllCustomers(){
 		return customerService.getCustomers();
 	}
 	

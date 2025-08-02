@@ -1,5 +1,14 @@
 package com.fullcars.restapi.model;
 
-public class ZBillSale {
+import jakarta.persistence.OneToOne;
+import lombok.Data;
 
+@Data
+public class ZBillPurchase {
+
+	@OneToOne
+	private Purchase purchase;
+	
+	private String fileUrl;
+	
 }

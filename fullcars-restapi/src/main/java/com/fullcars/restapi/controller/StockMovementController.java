@@ -1,10 +1,9 @@
 package com.fullcars.restapi.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
-import org.apache.coyote.BadRequestException;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -12,11 +11,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fullcars.restapi.enums.MovementType;
-import com.fullcars.restapi.model.CarPart;
 import com.fullcars.restapi.model.StockMovement;
 import com.fullcars.restapi.service.StockMovementService;
 
@@ -36,6 +35,13 @@ public class StockMovementController {
 		return stockService.getStockMovements();
 	}
 
+	@GetMapping(params = {"start", "end"})
+	public List<StockMovement> getStockMovementsBetweenDates(
+	        @RequestParam LocalDate start,
+	        @RequestParam LocalDate end) {
+	    return stockService.getStockMovementsBetween(start, end);
+	}
+	
 	@GetMapping("/{id}")
 	@ResponseStatus(HttpStatus.OK)
 	public StockMovement getStockMovement(@PathVariable Long id){
