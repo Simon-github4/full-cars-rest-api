@@ -28,7 +28,7 @@ public class CustomerService {
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	public void handleSaleEvent(SaleEvent e) {
 		Sale sale = e.getEntity();
-		System.err.println("SaleEvent REceived!!!" + e.getSource());
+		System.err.println("SaleEvent REceived!!! ; CustomerService" + e.getSource());
 	}
 	
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)

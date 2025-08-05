@@ -1,7 +1,9 @@
 package com.fullcars.restapi.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,10 +12,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import com.fullcars.restapi.model.Purchase;
 import com.fullcars.restapi.model.PurchaseDetail;
+import com.fullcars.restapi.model.Sale;
 import com.fullcars.restapi.service.PurchaseDetailService;
 import com.fullcars.restapi.service.PurchaseService;
 
@@ -21,27 +25,19 @@ import com.fullcars.restapi.service.PurchaseService;
 @RequestMapping(value = "/purchases")
 public class PurchaseController {
 
-private PurchaseService purchaseService;
-private PurchaseDetailService detailsService;
+	private final PurchaseService purchaseService;
+	private final PurchaseDetailService detailsService;
 
 	public PurchaseController(PurchaseService repo, PurchaseDetailService repod) {
 		this.purchaseService = repo;
 		this.detailsService = repod;
 	}
 	
-	@PostMapping
+	@PostMapping("/{idProvider}")
 	@ResponseStatus(HttpStatus.CREATED)
 	public Purchase post(@RequestBody Purchase b, @PathVariable Long idProvider) {
 		return purchaseService.save(b, idProvider);
 	}
-//----------------PODRIAN SER EL MISMO, USAN EL MISMO METODO SAVE-------------------------
-	/*@PutMapping("/{id}")
-	@ResponseStatus(HttpStatus.OK)
-	public Purchase put(@PathVariable Long id, @RequestBody Purchase b) {
-		if (!id.equals(b.getId())) 
-            throw new IllegalArgumentException("El ID enviado y el ID de la Compra deben coincidir");
-        return purchaseService.save(b);
-    }*/
 	
 	@GetMapping("/{id}")
 	@ResponseStatus(HttpStatus.OK)
@@ -54,6 +50,15 @@ private PurchaseDetailService detailsService;
 	public List<Purchase> getPurchases(){
 		return purchaseService.getPurchases();
 	}
+	
+	@GetMapping("/filters")
+	@ResponseStatus(HttpStatus.OK)
+	public List<Purchase> getSalesFiltered(
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+		    @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end,
+		    @RequestParam(required = false) Long idProvider) {
+		return purchaseService.getPurchases(start, end, idProvider);
+	}	
 	
 	@DeleteMapping("/{id}")
 	public void deletePurchase(@PathVariable Long id) {

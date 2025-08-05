@@ -38,12 +38,12 @@ private ICarPartRepository carPartRepo;
 	
 	@Transactional
 	public CarPart save(CarPart c) {
-		if (c.getId() != null){//update 
+		if (c.getId() != null){
 			c.setStock(findByIdOrThrow(c.getId()).getStock());//ensure stock is not modified on the client
 			c.setSku(generateSku(c));
 			return carPartRepo.save(c);
 		}
-		else {//insert
+		else {
 			CarPart saved = carPartRepo.save(c);
 			saved.setSku(generateSku(saved));
 			carPartRepo.save(saved);
@@ -74,13 +74,9 @@ private ICarPartRepository carPartRepo;
 	
 	private String generateSku(CarPart c) {
 		StringBuilder sb = new StringBuilder();
-		/*sb.append(getSafePrefix(c.getBrand().getName())).append("-")
-		  .append(getSafePrefix(c.getCategory().getName())).append("-")
-		  .append(getSafePrefix(c.getName())).append("-")
-		  .append(c.getId().toString());*/
 		sb.append(c.getBrand().getId().toString()).append("-")
 		  .append(c.getCategory().getId().toString()).append("-")
-		  .append(c.getProvider().getId().toString()).append("-")
+		  //.append(c.getProvider().getId().toString()).append("-")
 		  .append(c.getId().toString());
 		return sb.toString();
 	}

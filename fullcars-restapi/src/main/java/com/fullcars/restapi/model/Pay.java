@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 public class Pay {
 
 	@Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private Long amount;
     private LocalDate date;

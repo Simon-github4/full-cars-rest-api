@@ -25,25 +25,17 @@ import com.fullcars.restapi.service.SaleService;
 @RequestMapping(value = "/sales")
 public class SaleController {
 
-private SaleService saleService;
-private SaleDetailService detailsService;
+private final SaleService saleService;
+private final SaleDetailService detailsService;
 	
 	public SaleController(SaleService repo, SaleDetailService repod) {
 		this.saleService = repo;
 		this.detailsService = repod;
 	}
 	
-	@GetMapping(value = "/event")
-	@ResponseStatus(HttpStatus.OK)
-	public void event() {
-		saleService.save(new Sale(), 1L);
-		detailsService.save(new SaleDetail());
-	}
-	
 	@PostMapping("/{idCustomer}")
 	@ResponseStatus(HttpStatus.CREATED)
 	public Sale post(@RequestBody Sale sale, @PathVariable Long idCustomer) {
-		sale.getDetails().forEach(d -> d.setSale(sale));
 		return saleService.save(sale, idCustomer);
 	}
 	

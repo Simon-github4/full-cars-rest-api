@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @Entity
-@Table(name = "sale_details")
+//@Table(name = "sale_details")
 public class SaleDetail extends BaseDetail{
 	
     @JsonBackReference

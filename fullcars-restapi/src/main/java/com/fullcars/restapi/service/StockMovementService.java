@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
@@ -12,10 +13,12 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 import com.fullcars.restapi.enums.EventType;
 import com.fullcars.restapi.enums.MovementType;
-import com.fullcars.restapi.event.PurchaseDetailEvent;
-import com.fullcars.restapi.event.SaleDetailEvent;
+import com.fullcars.restapi.event.PurchaseEvent;
+import com.fullcars.restapi.event.SaleEvent;
 import com.fullcars.restapi.event.StockMovementEvent;
+import com.fullcars.restapi.model.Purchase;
 import com.fullcars.restapi.model.PurchaseDetail;
+import com.fullcars.restapi.model.Sale;
 import com.fullcars.restapi.model.SaleDetail;
 import com.fullcars.restapi.model.StockMovement;
 import com.fullcars.restapi.repository.IStockMovementRepository;
@@ -29,43 +32,49 @@ public class StockMovementService {//implements ApplicationListener<SaleEvent>{
 	private IStockMovementRepository stockRepo;
 	@Autowired
 	private ApplicationEventPublisher appEventPublisher;
-
-	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-	public void handleSaleEvent(SaleDetailEvent e) {
-		System.err.println("SaleDetailEvent REceived!!!" + e.getSource());
-		SaleDetail detail = e.getEntity();
+	
+	@Transactional
+	@EventListener
+	public void handleSaleEvent(SaleEvent e) {
+		System.err.println("SaleEvent REceived!!!" + e.getSource());
+		Sale sale = e.getEntity();
 		if(e.getEventType() == EventType.INSERT) {
-			StockMovement move = StockMovement.builder()
+			sale.getDetails().forEach(detail ->{
+				StockMovement move = StockMovement.builder()
 					.id(null)
 					.carPart(detail.getProduct())
 					.quantity(detail.getQuantity())
 					.date(detail.getSale().getDate())
-					.reference("Venta "+ detail.getSale().getDate().toString() +", "+ detail.getSale().getCustomer())
+					.reference("Venta "+ detail.getSale().getId())
 					.type(MovementType.SALIDA_VENTA)
 					.saleDetail(detail)
 					.build();
-			save(move);
+				save(move);
+			});
 		}else if(e.getEventType() == EventType.DELETE) 
-			deleteByDetail(detail);
+			sale.getDetails().forEach(detail -> this.deleteByDetail(detail));
 	}
-	
-	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-	public void handleSaleEvent(PurchaseDetailEvent e) {
-		System.err.println("PurchaseDetailEvent REceived!!!" + e.getSource());
-		PurchaseDetail detail = e.getEntity();
+
+	@Transactional
+	@EventListener
+	public void handlePurchaseEvent(PurchaseEvent e) {
+		System.err.println("PurchaseEvent REceived!!!" + e.getSource());
+		Purchase purchase = e.getEntity();
 		if(e.getEventType() == EventType.INSERT) {
-			StockMovement move = StockMovement.builder()
-					.id(null)
-					.carPart(detail.getProduct())
-					.date(detail.getPurchase().getDate())
-					.quantity(detail.getQuantity())
-					.reference("Compra "+ detail.getPurchase().getDate().toString() +", "+ detail.getPurchase().getProvider())
-					.type(MovementType.ENTRADA_COMPRA)
-					.purchaseDetail(detail)
-					.build();
-			save(move);
+			purchase.getDetails().forEach(detail -> {				
+				StockMovement move = StockMovement.builder()
+						.id(null)
+						.carPart(detail.getProduct())
+						.date(detail.getPurchase().getDate())
+						.quantity(detail.getQuantity())
+						.reference("Compra "+ detail.getPurchase().getId())
+						.type(MovementType.ENTRADA_COMPRA)
+						.purchaseDetail(detail)
+						.build();
+				save(move);
+			});
 		}else if(e.getEventType() == EventType.DELETE) 
-			deleteByDetail(detail);
+			purchase.getDetails().forEach(detail -> this.deleteByDetail(detail));
 	}	
 	
 	@Transactional

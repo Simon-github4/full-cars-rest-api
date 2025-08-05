@@ -20,10 +20,9 @@ import jakarta.persistence.EntityNotFoundException;
 public class SaleService {
 
 	private final ISaleRepository saleRepo;
-	private CustomerService customerService;
+	private final CustomerService customerService;
 	private final ApplicationEventPublisher appEventPublisher;
 	
-	@Autowired
 	public SaleService(ISaleRepository repo, ApplicationEventPublisher publisher, CustomerService customerService) {
 		this.saleRepo = repo;
 		this.appEventPublisher = publisher;
@@ -31,12 +30,13 @@ public class SaleService {
 	}
 	
 	@Transactional
-	public Sale save(Sale b, Long idCustomer) {
+	public Sale save(Sale sale, Long idCustomer) {
 		Customer c = customerService.findByIdOrThrow(idCustomer);
-		b.setCustomer(c);
-		Sale sale = saleRepo.save(b);
-		appEventPublisher.publishEvent(new SaleEvent(this, sale, EventType.INSERT));
-		return sale;
+		sale.setCustomer(c);
+		sale.getDetails().forEach(d -> d.setSale(sale));
+		Sale savedSale = saleRepo.save(sale);
+		appEventPublisher.publishEvent(new SaleEvent(this, savedSale, EventType.INSERT));
+		return savedSale;
 	}
 	
 	@Transactional
@@ -58,6 +58,7 @@ public class SaleService {
 		return saleRepo.findAll();
 	}
 
+	@Transactional(readOnly = true)
 	public List<Sale> getSales(LocalDate start, LocalDate end, Long idCustomer) {
 		if (start != null && end != null && idCustomer != null) {
 	        return saleRepo.findByDateBetweenAndCustomerId(start, end, idCustomer);

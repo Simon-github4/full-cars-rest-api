@@ -31,7 +31,7 @@ import lombok.NoArgsConstructor;
 public class Sale {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "sale_id")
     private Long id;
     private LocalDate date;

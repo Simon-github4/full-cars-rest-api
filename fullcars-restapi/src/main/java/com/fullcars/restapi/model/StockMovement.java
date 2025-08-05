@@ -25,7 +25,7 @@ import lombok.NoArgsConstructor;
 public class StockMovement {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private Integer quantity;
     private LocalDate date;

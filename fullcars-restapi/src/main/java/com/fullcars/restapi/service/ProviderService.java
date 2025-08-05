@@ -25,7 +25,7 @@ public class ProviderService {
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	public void onApplicationEvent(PurchaseEvent e) {
 		Purchase sale = e.getEntity();
-		System.err.println("PurchaseEvent REceived!!!" + e.getSource());
+		System.err.println("PurchaseEvent REceived!!!; ProviderService" + e.getSource());
 	}
 	
 	public Provider save(Provider c) {
