@@ -26,7 +26,7 @@ public class CarPart {
     private String name;
     private String description;
     
-    @NotBlank(message = "El SKU no puede estar vacío")//ppor si se aplica @Valid
+    //@NotBlank(message = "El SKU no puede estar vacío")//ppor si se aplica @Valid
     @Column(unique = true, nullable = false)
     private String sku;
 	

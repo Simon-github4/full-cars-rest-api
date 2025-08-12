@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+import com.fullcars.restapi.dto.CustomerSummaryDTO;
 import com.fullcars.restapi.event.PayEvent;
 import com.fullcars.restapi.event.SaleEvent;
 import com.fullcars.restapi.model.Customer;
@@ -18,11 +19,14 @@ import jakarta.persistence.EntityNotFoundException;
 @Service
 public class CustomerService {
 	
-	private ICustomerRepository customerRepo;
+	private final ICustomerRepository customerRepo;
+	private final PayService payService;
+	private final SaleService saleService;
 	
-	
-	public CustomerService(ICustomerRepository repo) {
+	public CustomerService(ICustomerRepository repo, PayService payService, SaleService saleService) {
 		this.customerRepo = repo;
+		this.payService = payService;
+		this.saleService = saleService;
 	}
 	
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -59,5 +63,13 @@ public class CustomerService {
 	public Customer findByDniOrThrow(String dni) {
 		return customerRepo.findByDni(dni).orElseThrow(() -> 
 				new EntityNotFoundException("Cleinte no encontrado con dni: " + dni));
+	}
+
+	public CustomerSummaryDTO getCustomerSummary(Long customerId) {
+		CustomerSummaryDTO summary = new CustomerSummaryDTO();
+		summary.setCustomer(findByIdOrThrow(customerId));
+		summary.setSales(saleService.getSales(null, null, customerId));
+		summary.setPayments(payService.getPayments(customerId));
+		return summary;
 	}
 }

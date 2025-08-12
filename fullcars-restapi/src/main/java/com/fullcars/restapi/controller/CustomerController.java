@@ -14,14 +14,17 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fullcars.restapi.dto.CustomerSummaryDTO;
 import com.fullcars.restapi.model.Customer;
 import com.fullcars.restapi.service.CustomerService;
+import com.fullcars.restapi.service.PayService;
+import com.fullcars.restapi.service.SaleService;
 
 @RestController
 @RequestMapping(value = "/customers")
 public class CustomerController {
 
-	private CustomerService customerService;
+	private final CustomerService customerService;
 	
 	public CustomerController(CustomerService repo) {
 		this.customerService = repo;
@@ -64,4 +67,10 @@ public class CustomerController {
 		customerService.delete(id);
 	}
 
+	@GetMapping("/{id}/summary")
+	@ResponseStatus(HttpStatus.OK)
+	public CustomerSummaryDTO getCustomerSummaryById(@PathVariable Long id){
+		return customerService.getCustomerSummary(id);
+	}
+	
 }

@@ -38,7 +38,7 @@ private ICarPartRepository carPartRepo;
 	
 	@Transactional
 	public CarPart save(CarPart c) {
-		if (c.getId() != null){
+		if (c.getId() != null){			
 			c.setStock(findByIdOrThrow(c.getId()).getStock());//ensure stock is not modified on the client
 			c.setSku(generateSku(c));
 			return carPartRepo.save(c);

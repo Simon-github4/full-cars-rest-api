@@ -10,15 +10,17 @@ import com.fullcars.restapi.model.Sale;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @Builder
+@NoArgsConstructor
 @AllArgsConstructor
 public class CustomerSummaryDTO {
 
     private Customer customer;
     private List<Sale> sales;
     private List<Pay> payments;
-    private BigDecimal saldo;
+    //private BigDecimal saldo;
     
 }
