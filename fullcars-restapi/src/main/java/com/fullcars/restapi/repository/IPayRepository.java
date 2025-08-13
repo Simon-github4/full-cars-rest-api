@@ -9,5 +9,5 @@ import com.fullcars.restapi.model.Pay;
 @Repository
 public interface IPayRepository extends JpaRepository<Pay, Long>{
 
-	List<Pay> findByCustomer(Long customerId);
+	List<Pay> findByCustomerId(Long customerId);
 }

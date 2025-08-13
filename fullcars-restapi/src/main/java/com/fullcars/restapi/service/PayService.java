@@ -36,6 +36,6 @@ public class PayService {
 	}
 
 	public List<Pay> getPayments(Long customerId) {
-		return payRepo.findByCustomer(customerId);
+		return payRepo.findByCustomerId(customerId);
 	}
 }

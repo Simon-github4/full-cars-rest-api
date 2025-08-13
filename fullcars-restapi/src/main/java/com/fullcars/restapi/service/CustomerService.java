@@ -2,6 +2,7 @@ package com.fullcars.restapi.service;
 
 import java.util.List;
 
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -23,7 +24,7 @@ public class CustomerService {
 	private final PayService payService;
 	private final SaleService saleService;
 	
-	public CustomerService(ICustomerRepository repo, PayService payService, SaleService saleService) {
+	public CustomerService(ICustomerRepository repo, PayService payService, @Lazy SaleService saleService) {
 		this.customerRepo = repo;
 		this.payService = payService;
 		this.saleService = saleService;
