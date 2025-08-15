@@ -20,8 +20,6 @@ public class CategoryService {
 	}
 	
 	public void delete(Long id) {
-        if (!categoryRepo.existsById(id)) 
-            throw new EntityNotFoundException("Categoria no encontrada con id: " + id);
         categoryRepo.deleteById(id);
 	}
 	

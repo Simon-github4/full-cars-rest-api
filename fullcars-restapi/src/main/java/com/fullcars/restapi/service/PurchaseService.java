@@ -1,15 +1,23 @@
 package com.fullcars.restapi.service;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.rmi.ServerException;
 import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.fullcars.restapi.enums.EventType;
 import com.fullcars.restapi.event.PurchaseEvent;
-import com.fullcars.restapi.model.Provider;
 import com.fullcars.restapi.model.Purchase;
 import com.fullcars.restapi.repository.IPurchaseRepository;
 
@@ -41,8 +49,16 @@ public class PurchaseService {
 	public void delete(Long id) {
         Purchase deletedPurchase = purchaseRepo.findById(id).orElseThrow(()-> 
         							new EntityNotFoundException("Compra no encontrado con id: " + id)); 
-        purchaseRepo.deleteById(id);
         appEventPublisher.publishEvent(new PurchaseEvent(this, deletedPurchase, EventType.DELETE));
+        String filePath = deletedPurchase.getFilePath();
+        purchaseRepo.deleteById(id);
+        if(filePath != null && !filePath.isBlank())
+			try {
+				Files.deleteIfExists(Paths.get(filePath));
+			} catch (IOException e) {
+				System.err.println("No se pudo borrar el archivo de la compra");
+				e.printStackTrace();
+			}
 	}
 	
     @Transactional(readOnly = true)
@@ -66,6 +82,47 @@ public class PurchaseService {
 	        return purchaseRepo.findByProviderId(idProvider);
 	     else 
 	        return purchaseRepo.findAll();
+	}
+
+	public String uploadBill(Long id, MultipartFile file) throws IOException {
+		String desktopPath = System.getProperty("user.home") + File.separator + "Desktop" + File.separator + "Archivos de Compras";
+    	Path folderPath = Paths.get(desktopPath);
+        if (!Files.exists(folderPath)) 
+            Files.createDirectories(folderPath);
+
+        String filePrefix = "Compra Nro " + id.toString();
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(folderPath, filePrefix + ".*")) {
+            for (Path existingFile : stream) 
+                Files.deleteIfExists(existingFile);
+        }
+
+        String fileName =  filePrefix + file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf("."));//with extension
+        Path filePath = folderPath.resolve(fileName);
+        
+        try (var inputStream = file.getInputStream()) {
+            Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
+        }
+		
+		purchaseRepo.updateFilePathById(id, filePath.toString());
+		return fileName;
+	}
+
+	public File getBill(Long id) throws ServerException {
+		Path filePath = Paths.get(purchaseRepo.findPurchaseFilePath(id));
+		
+		if (filePath == null) 
+	        throw new ServerException("No hay archivo registrado para esta compra");
+
+	    File file = (filePath.toFile());
+	    if (!file.exists()) 
+	    	throw new ServerException("El archivo no existe en el servidor");
+
+		return file;
+	}
+
+	
+	public void confirmPay(Long id, boolean payed) {
+		purchaseRepo.updateIsPayed(id, payed);
 	}
 	
 }

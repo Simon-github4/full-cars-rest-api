@@ -21,8 +21,6 @@ public class PayService {
 	}
 	
 	public void delete(Long id) {
-        if (!payRepo.existsById(id)) 
-            throw new EntityNotFoundException("Pago no encontrado con id: " + id);
         payRepo.deleteById(id);
 	}
 	

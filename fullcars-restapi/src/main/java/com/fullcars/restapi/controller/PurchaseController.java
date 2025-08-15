@@ -1,21 +1,27 @@
 package com.fullcars.restapi.controller;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -23,8 +29,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fullcars.restapi.dto.ConfirmPurchasePayDTO;
 import com.fullcars.restapi.model.Purchase;
-import com.fullcars.restapi.model.PurchaseDetail;
 import com.fullcars.restapi.service.PurchaseDetailService;
 import com.fullcars.restapi.service.PurchaseService;
 
@@ -60,7 +66,7 @@ public class PurchaseController {
 	
 	@GetMapping("/filters")
 	@ResponseStatus(HttpStatus.OK)
-	public List<Purchase> getSalesFiltered(
+	public List<Purchase> getPurchasesFiltered(
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
 		    @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end,
 		    @RequestParam(required = false) Long idProvider) {
@@ -72,19 +78,46 @@ public class PurchaseController {
 		purchaseService.delete(id);
 	}
 	
-	@PostMapping("/uploadBill")
-	public ResponseEntity<?> uploadBill(@RequestParam("file") MultipartFile file) {
+	@PostMapping("/{id}/uploadBill")
+	public ResponseEntity<?> uploadBill(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
 	    try {
-	        String folder = "/var/app/facturas/"; // ruta configurable
-	        Path path = Paths.get(folder + file.getOriginalFilename());
-	        Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
-	        return ResponseEntity.ok("Archivo guardado");
+            String filePath = purchaseService.uploadBill(id, file);
+
+            return ResponseEntity.ok("Archivo guardado en: " + filePath);
 	    } catch (IOException e) {
 	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al guardar archivo");
 	    }
 	}
+	private void ensureOneDriveFileIsLocal(Path path) throws IOException {
+	    // Esto abre el archivo en modo lectura, lo que fuerza a Windows/OneDrive a descargarlo
+	    try (var channel = FileChannel.open(path, StandardOpenOption.READ)) {
+	        ByteBuffer buffer = ByteBuffer.allocate(1);
+	        channel.read(buffer);
+	    }
+	}
 
-//----------------------------------------------- Details ----------------------------------------
+	@GetMapping("/{id}/getBill")
+	public ResponseEntity<InputStreamResource> getBill(@PathVariable Long id) throws IOException {
+	    File file = purchaseService.getBill(id);
+	    
+	    String mimeType = Files.probeContentType(file.toPath());
+        if (mimeType == null) 
+            mimeType = "application/octet-stream";
+        
+        //InputStreamResource resource = new InputStreamResource(new FileInputStream(file));
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(mimeType))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"")
+                .contentLength(file.length())
+                .body(new InputStreamResource(new FileInputStream(file)));
+	}
+
+	@PatchMapping("/{id}/confirmPay")
+	public void confirmPay(@PathVariable Long id, @RequestBody ConfirmPurchasePayDTO confirmPurchasePayDTO){
+		purchaseService.confirmPay(id, confirmPurchasePayDTO.isPayed());
+	}
+/*----------------------------------------------- Details ----------------------------------------
 	@PostMapping("/{id}/details")
 	@ResponseStatus(HttpStatus.CREATED)
 	public PurchaseDetail postPurchaseDetail(@RequestBody PurchaseDetail b) {
@@ -110,11 +143,10 @@ public class PurchaseController {
 	@ResponseStatus(HttpStatus.OK)
 	public List<PurchaseDetail> getDetails(){
 		return detailsService.getDetails();
-	}*/
-	
+	}
 	@DeleteMapping("/details/{id}")
 	public void deleteDetail(@PathVariable Long id) {
 		detailsService.delete(id);
-	}
+	}*/
 	
 }

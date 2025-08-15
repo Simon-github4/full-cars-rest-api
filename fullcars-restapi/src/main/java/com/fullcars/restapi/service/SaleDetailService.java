@@ -10,15 +10,13 @@ import com.fullcars.restapi.repository.ISaleDetailRepository;
 import jakarta.persistence.EntityNotFoundException;
 
 @Service
-public class SaleDetailService {
+public class SaleDetailService {// NOT USED
 	
 	private ISaleDetailRepository detailRepo;
 	
 	public SaleDetailService(ISaleDetailRepository repo) {
 		this.detailRepo = repo;
 	}
-	
-	
 	
 	public SaleDetail save(SaleDetail c) {
 		return detailRepo.save(c);

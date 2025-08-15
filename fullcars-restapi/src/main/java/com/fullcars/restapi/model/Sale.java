@@ -35,11 +35,13 @@ public class Sale {
     @Column(name = "sale_id")
     private Long id;
     private LocalDate date;
+    @Column(nullable = true) // null es a particular
     private String saleNumber;
     private BigDecimal taxes; // discount
 
     @ManyToOne
     private Customer customer;
+    private String remitoPath;
     /* deberian estar en SaleBill 
      	private String adressSnapshot;
     	private String cuitSnapshot;	

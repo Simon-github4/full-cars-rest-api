@@ -52,8 +52,6 @@ private ICarPartRepository carPartRepo;
 	}
 
 	public void delete(Long id) {
-        if (!carPartRepo.existsById(id)) 
-            throw new EntityNotFoundException("Auto Parte no encontrada con id: " + id);
         carPartRepo.deleteById(id);
 	}
 	

@@ -11,7 +11,7 @@ import com.fullcars.restapi.repository.IPurchaseDetailRepository;
 import jakarta.persistence.EntityNotFoundException;
 
 @Service
-public class PurchaseDetailService {
+public class PurchaseDetailService { //NOT USED
 
 	private IPurchaseDetailRepository detailRepo;
 	
@@ -26,8 +26,6 @@ public class PurchaseDetailService {
 	
 	@Transactional
 	public void delete(Long id) {
-        if (!detailRepo.existsById(id)) 
-            throw new EntityNotFoundException("Detalle no encontrado con id: " + id);
         detailRepo.deleteById(id);
 	}
 	

@@ -33,8 +33,6 @@ public class ProviderService {
 	}
 	
 	public void delete(Long id) {
-        if (!providerRepo.existsById(id)) 
-            throw new EntityNotFoundException("Proveedor no encontrada con id: " + id);
         providerRepo.deleteById(id);
 	}
 	

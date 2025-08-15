@@ -55,10 +55,10 @@ public class StockMovementService {//implements ApplicationListener<SaleEvent>{
 			sale.getDetails().forEach(detail -> this.deleteByDetail(detail));
 	}
 
-	@Transactional
+	@Transactional//EventListener(phase = TransactionPhase.AFTER_COMMIT)
 	@EventListener
 	public void handlePurchaseEvent(PurchaseEvent e) {
-		System.err.println("PurchaseEvent REceived!!!" + e.getSource());
+		System.err.println("PurchaseEvent REceived!!!" + e.getEntity().getDate().toString());
 		Purchase purchase = e.getEntity();
 		if(e.getEventType() == EventType.INSERT) {
 			purchase.getDetails().forEach(detail -> {				
@@ -94,17 +94,21 @@ public class StockMovementService {//implements ApplicationListener<SaleEvent>{
 
 	@Transactional
 	public void deleteByDetail(PurchaseDetail d) {
-        StockMovement move = stockRepo.findByPurchaseDetail(d).orElseThrow(()-> 
-					new EntityNotFoundException("Movimiento no encontrado")); 
-        stockRepo.delete(move);
-        appEventPublisher.publishEvent(new StockMovementEvent(this, move, EventType.DELETE, getCurrentStockByCarPartId(move.getCarPart().getId())));
+        stockRepo.findByPurchaseDetail(d).ifPresent(move -> {
+	        stockRepo.delete(move);
+	        appEventPublisher.publishEvent(
+	            new StockMovementEvent(this, move, EventType.DELETE, getCurrentStockByCarPartId(move.getCarPart().getId()))
+	        );
+	    });
 	}
 	@Transactional
 	public void deleteByDetail(SaleDetail d) {
-        StockMovement move = stockRepo.findBySaleDetail(d).orElseThrow(()-> 
-					new EntityNotFoundException("Movimiento no encontrado")); 
-        stockRepo.delete(move);
-        appEventPublisher.publishEvent(new StockMovementEvent(this, move, EventType.DELETE, getCurrentStockByCarPartId(move.getCarPart().getId())));
+	    stockRepo.findBySaleDetail(d).ifPresent(move -> {
+	        stockRepo.delete(move);
+	        appEventPublisher.publishEvent(
+	            new StockMovementEvent(this, move, EventType.DELETE, getCurrentStockByCarPartId(move.getCarPart().getId()))
+	        );
+	    });
 	}
 	
 	@Transactional(readOnly = true)

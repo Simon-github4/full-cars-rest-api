@@ -26,8 +26,6 @@ public class BrandService {
 	
 	@Transactional
 	public void delete(Long id) {
-        if (!brandRepo.existsById(id)) 
-            throw new EntityNotFoundException("Marca no encontrada con id: " + id);
         brandRepo.deleteById(id);
 	}
 	
