@@ -31,7 +31,7 @@ public class DatabaseBackupRunner implements ApplicationRunner {
         String url = env.getProperty("spring.datasource.url"); 
         String dbName = url.substring(url.lastIndexOf("/") + 1);
 
-        String backupPath = System.getProperty("user.home") + "\\BACKUPfullCarsSoftwareDataBase.sql";
+        String backupPath = "C:\\SoftwareFullCars\\BACKUPfullCarsSoftwareDataBase.sql";
 
         String command = String.format("\"%s\" -U %s -F c -b -v -f \"%s\" %s", pgDumpPath, user, backupPath, dbName);
 

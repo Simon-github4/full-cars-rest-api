@@ -16,6 +16,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -41,17 +42,17 @@ public class Sale {
 
     @ManyToOne
     private Customer customer;
+    
     private String remitoPath;
-    /* deberian estar en SaleBill 
-     	private String adressSnapshot;
-    	private String cuitSnapshot;	
-    	private String fullNameSnapshot;
-     */
+    
+    @JsonManagedReference
+    @OneToOne(optional = true)// null es NO facturado
+    private Factura factura;
+    
     @JsonManagedReference
     @OneToMany(mappedBy = "sale", fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
     private List<SaleDetail> details = new ArrayList<>();
     
-    //private String factura / remito Url;
     //private char type;
     //state (completed, pending, canceled)
 }
