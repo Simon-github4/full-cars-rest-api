@@ -55,7 +55,7 @@ public class StockMovementService {//implements ApplicationListener<SaleEvent>{
 			sale.getDetails().forEach(detail -> this.deleteByDetail(detail));
 	}
 
-	@Transactional//EventListener(phase = TransactionPhase.AFTER_COMMIT)
+	@Transactional// Opción 1: Misma transacción (todo o nada) -- Opción 2: Transacción separada @Transactional(propagation = Propagation.REQUIRES_NEW)
 	@EventListener
 	public void handlePurchaseEvent(PurchaseEvent e) {
 		System.err.println("PurchaseEvent REceived!!!" + e.getEntity().getDate().toString());

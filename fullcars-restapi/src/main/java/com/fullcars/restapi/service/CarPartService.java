@@ -4,10 +4,10 @@ import java.util.List;
 
 import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Sort;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 import com.fullcars.restapi.event.StockMovementEvent;
 import com.fullcars.restapi.model.CarPart;
@@ -24,7 +24,8 @@ private ICarPartRepository carPartRepo;
 		this.carPartRepo = repo;
 	}
 	
-	@Transactional  //still extends same transaction of invoker
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	@Async
 	@EventListener  //on the same Transaction of the methos that publish it  ; TransactionalEventListener(AFTER_COMMIT) is when the Transaction of the invoker finish 
     public void handleStockMovementEvent(StockMovementEvent event) {
 	    Long carPartId = event.getEntity().getCarPart().getId();

@@ -49,9 +49,9 @@ public class PurchaseService {
 	public void delete(Long id) {
         Purchase deletedPurchase = purchaseRepo.findById(id).orElseThrow(()-> 
         							new EntityNotFoundException("Compra no encontrado con id: " + id)); 
-        appEventPublisher.publishEvent(new PurchaseEvent(this, deletedPurchase, EventType.DELETE));
-        String filePath = deletedPurchase.getFilePath();
         purchaseRepo.deleteById(id);
+        String filePath = deletedPurchase.getFilePath();
+        appEventPublisher.publishEvent(new PurchaseEvent(this, deletedPurchase, EventType.DELETE));
         if(filePath != null && !filePath.isBlank())
 			try {
 				Files.deleteIfExists(Paths.get(filePath));
