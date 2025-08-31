@@ -3,6 +3,7 @@ package com.fullcars.restapi.repository;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -38,4 +39,7 @@ public interface ISaleRepository extends JpaRepository<Sale, Long>{
 	
 	@Query("SELECT s.remitoPath FROM Sale s WHERE s.id = :id")
 	String findRemitoPathById(@Param("id") Long id);
+	
+	@Query("SELECT s FROM Sale s ORDER BY s.date DESC")
+    List<Sale> findRecentSales(Pageable pageable);
 }

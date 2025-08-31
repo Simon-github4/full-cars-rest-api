@@ -3,6 +3,7 @@ package com.fullcars.restapi.service;
 import java.util.List;
 
 import org.springframework.context.event.EventListener;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -82,4 +83,16 @@ private ICarPartRepository carPartRepo;
 	private String getSafePrefix(String value) {
         return value == null ? "XXX" : value.replaceAll("[^A-Za-z]", "").toUpperCase().substring(0, Math.min(3, value.length()));
     }
+
+	public List<CarPart> getCriticalStock() {
+		return carPartRepo.findByStockLessThan(5L);
+	}
+
+	public long getRegisteredCarParts() {
+		return carPartRepo.count();
+	}
+	public List<CarPart> getTopProducts(int limit) {
+	    return carPartRepo.findTopProducts(PageRequest.of(0, limit));
+	}
+
 }

@@ -31,6 +31,9 @@ public interface IPurchaseRepository extends JpaRepository<Purchase, Long>{
 	@Transactional
 	@Query("UPDATE Purchase p SET p.isPayed = :payed WHERE p.id = :id")
 	void updateIsPayed(Long id, boolean payed);
+	
+	@Query("SELECT p.id FROM Purchase p WHERE p.isPayed = :isPayed")
+	List<Long> findByIsPayed(boolean isPayed);
 
 
 }

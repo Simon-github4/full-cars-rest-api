@@ -124,5 +124,9 @@ public class PurchaseService {
 	public void confirmPay(Long id, boolean payed) {
 		purchaseRepo.updateIsPayed(id, payed);
 	}
+
+	public List<Long> getPurchasesIdNotPayed() {
+		return purchaseRepo.findByIsPayed(false);
+	}
 	
 }

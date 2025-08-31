@@ -42,7 +42,7 @@ public class StockMovementService {//implements ApplicationListener<SaleEvent>{
 			sale.getDetails().forEach(detail ->{
 				StockMovement move = StockMovement.builder()
 					.id(null)
-					.carPart(detail.getProduct())
+					.carPart(detail.getCarPart())
 					.quantity(detail.getQuantity())
 					.date(detail.getSale().getDate())
 					.reference("Venta "+ detail.getSale().getId())
@@ -64,7 +64,7 @@ public class StockMovementService {//implements ApplicationListener<SaleEvent>{
 			purchase.getDetails().forEach(detail -> {				
 				StockMovement move = StockMovement.builder()
 						.id(null)
-						.carPart(detail.getProduct())
+						.carPart(detail.getCarPart())
 						.date(detail.getPurchase().getDate())
 						.quantity(detail.getQuantity())
 						.reference("Compra "+ detail.getPurchase().getId())

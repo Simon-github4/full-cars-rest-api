@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import jakarta.persistence.CascadeType;
@@ -55,4 +56,12 @@ public class Sale {
     
     //private char type;
     //state (completed, pending, canceled)
+    @JsonIgnore
+    public long getTotal() {
+    	long total =0;
+    	for(SaleDetail d : details)
+    		total += d.getSubTotal();
+    	return total;
+    }
+    
 }

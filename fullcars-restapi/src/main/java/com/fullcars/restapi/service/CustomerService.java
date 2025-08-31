@@ -70,4 +70,8 @@ public class CustomerService {
 		summary.setPayments(payService.getPayments(customerId));
 		return summary;
 	}
+
+	public long calculateTotalToCharge() {
+		return customerRepo.getTotalToChargeAll();
+	}
 }

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MappedSuperclass;
 import lombok.Getter;
@@ -24,7 +25,8 @@ public abstract class BaseDetail {
     private Long unitPrice;
     
     @ManyToOne(optional = false)
-    private CarPart product;
+    @JoinColumn(name = "product_id") // <- poné el nombre real de la columna en tu DB
+    private CarPart carPart;
     
     public float getSubTotal() {
     	return quantity * unitPrice ;

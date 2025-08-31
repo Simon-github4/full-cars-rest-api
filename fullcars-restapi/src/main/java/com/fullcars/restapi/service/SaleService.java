@@ -13,12 +13,14 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.fullcars.restapi.enums.EventType;
 import com.fullcars.restapi.event.SaleEvent;
+import com.fullcars.restapi.model.CarPart;
 import com.fullcars.restapi.model.Customer;
 import com.fullcars.restapi.model.Sale;
 import com.fullcars.restapi.repository.ISaleRepository;
@@ -123,6 +125,10 @@ public class SaleService {
 	    	throw new ServerException("El Remito no existe en el servidor");
 
 		return file;
+	}
+
+	public List<Sale> getRecentSales(int limit) {
+	    return saleRepo.findRecentSales(PageRequest.of(0, limit));
 	}
 	
 }
