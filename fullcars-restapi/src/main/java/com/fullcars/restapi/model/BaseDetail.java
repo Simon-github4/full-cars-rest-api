@@ -1,11 +1,14 @@
 package com.fullcars.restapi.model;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MappedSuperclass;
 import lombok.Getter;
@@ -21,14 +24,14 @@ public abstract class BaseDetail {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
-    private Integer quantity;
-    private Long unitPrice;
+    private int quantity;
+    @Column(precision = 15, scale = 2)
+    private BigDecimal unitPrice;
     
     @ManyToOne(optional = false)
-    @JoinColumn(name = "product_id") // <- poné el nombre real de la columna en tu DB
     private CarPart carPart;
     
-    public float getSubTotal() {
-    	return quantity * unitPrice ;
+    public BigDecimal getSubTotal() {
+    	return unitPrice.multiply(BigDecimal.valueOf(quantity)).setScale(2, RoundingMode.HALF_UP) ;
     }
 }

@@ -1,5 +1,6 @@
 package com.fullcars.restapi.controller;
 
+import java.rmi.ServerException;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -29,13 +30,13 @@ public class BrandController {
 	
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
-	public Brand postBrand(@RequestBody Brand b) {
+	public Brand postBrand(@RequestBody Brand b) throws ServerException {
 		return brandService.save(b);
 	}
 //----------------PODRIAN SER EL MISMO, USAN EL MISMO METODO SAVE-------------------------
 	@PutMapping("/{id}")
 	@ResponseStatus(HttpStatus.OK)
-	public Brand putBrand(@PathVariable Long id, @RequestBody Brand b) {
+	public Brand putBrand(@PathVariable Long id, @RequestBody Brand b) throws ServerException {
 		if (!id.equals(b.getId())) 
             throw new IllegalArgumentException("Path ID and brand ID must match.");
         return brandService.save(b);

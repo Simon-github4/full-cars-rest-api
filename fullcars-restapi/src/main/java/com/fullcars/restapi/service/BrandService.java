@@ -1,7 +1,9 @@
 package com.fullcars.restapi.service;
 
+import java.rmi.ServerException;
 import java.util.List;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,8 +22,14 @@ public class BrandService {
 	}
 	
 	@Transactional
-	public Brand save(Brand b) {
+	public Brand save(Brand b) throws ServerException {
+		if(b.getId() == null && findByName(b.getName()) != null)
+			throw new ServerException("Ya Existe una Marca con ese nombre");
 		return brandRepo.save(b);
+	}
+	@Transactional(readOnly = true)
+	public Brand findByName(String name) {
+		return brandRepo.findByName(name);
 	}
 	
 	@Transactional
@@ -36,7 +44,7 @@ public class BrandService {
 	}
 	@Transactional(readOnly = true)
 	public List<Brand> getBrands(){
-		return brandRepo.findAll();
+		return brandRepo.findAll(Sort.by(Sort.Direction.ASC, "name"));
 	}
 	
 }

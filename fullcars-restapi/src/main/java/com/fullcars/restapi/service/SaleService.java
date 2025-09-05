@@ -20,7 +20,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.fullcars.restapi.enums.EventType;
 import com.fullcars.restapi.event.SaleEvent;
-import com.fullcars.restapi.model.CarPart;
 import com.fullcars.restapi.model.Customer;
 import com.fullcars.restapi.model.Sale;
 import com.fullcars.restapi.repository.ISaleRepository;
@@ -33,11 +32,13 @@ public class SaleService {
 	private final ISaleRepository saleRepo;
 	private final CustomerService customerService;
 	private final ApplicationEventPublisher appEventPublisher;
-	
-	public SaleService(ISaleRepository repo, ApplicationEventPublisher publisher, CustomerService customerService) {
+	private final EmailService mailService;
+
+	public SaleService(ISaleRepository repo, ApplicationEventPublisher publisher, CustomerService customerService, EmailService mailService) {
 		this.saleRepo = repo;
 		this.appEventPublisher = publisher;
 		this.customerService = customerService;
+		this.mailService = mailService;
 	}
 	
 	@Transactional
@@ -91,7 +92,7 @@ public class SaleService {
 	    }
 	}
 
-	public String uploadRemito(Long id, MultipartFile file) throws IOException {
+	public String uploadRemito(Long id, MultipartFile file) throws Exception {//it is called after new sale save on controller
 		String desktopPath = System.getProperty("user.home") + File.separator + "Desktop" + File.separator + "Remitos de Ventas";
     	Path folderPath = Paths.get(desktopPath);
         if (!Files.exists(folderPath)) 
@@ -108,6 +109,9 @@ public class SaleService {
         
         try (var inputStream = file.getInputStream()) {
             Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
+            mailService.sendEmail(saleRepo.findEmailById(id), "Nueva venta registrada",
+                    			"<h1>Se generó una venta</h1><p>ID: " + id + "</p>", 
+                    			filePath.toFile());
         }
 		
 		saleRepo.updateRemitoPathById(id, filePath.toString());

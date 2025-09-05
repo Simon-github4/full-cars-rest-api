@@ -1,6 +1,8 @@
 package com.fullcars.restapi.service;
 
 import java.util.List;
+
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import com.fullcars.restapi.model.Category;
 import com.fullcars.restapi.repository.ICategoryRepository;
@@ -29,6 +31,6 @@ public class CategoryService {
 	}
 	
 	public List<Category> getCategories(){
-		return categoryRepo.findAll();
+		return categoryRepo.findAll(Sort.by(Sort.Direction.ASC, "name"));
 	}
 }

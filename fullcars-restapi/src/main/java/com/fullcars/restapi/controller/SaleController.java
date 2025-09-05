@@ -75,7 +75,7 @@ private final SaleDetailService detailsService;
 	}
 	
 	@PostMapping("/{id}/uploadRemito")
-	public ResponseEntity<?> uploadRemito(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+	public ResponseEntity<?> uploadRemito(@PathVariable Long id, @RequestParam("file") MultipartFile file) throws Exception {
 	    try {
             String filePath = saleService.uploadRemito(id, file);
 

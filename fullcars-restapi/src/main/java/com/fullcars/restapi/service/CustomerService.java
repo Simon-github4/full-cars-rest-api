@@ -1,18 +1,14 @@
 package com.fullcars.restapi.service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 import com.fullcars.restapi.dto.CustomerSummaryDTO;
-import com.fullcars.restapi.event.PayEvent;
-import com.fullcars.restapi.event.SaleEvent;
 import com.fullcars.restapi.model.Customer;
-import com.fullcars.restapi.model.Pay;
-import com.fullcars.restapi.model.Sale;
 import com.fullcars.restapi.repository.ICustomerRepository;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -30,17 +26,6 @@ public class CustomerService {
 		this.saleService = saleService;
 	}
 	
-	/*@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-	public void handleSaleEvent(SaleEvent e) {
-		Sale sale = e.getEntity();
-		System.err.println("Customer service ; SaleEvent REceived!!!" + e.getSource());
-	}
-	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-	public void handlePayEvent(PayEvent e) {
-		Pay sale = e.getEntity();
-		System.err.println("Customer service ; PayEvent Received!!!" + e.getSource());
-	}*/
-	
 	public Customer save(Customer c) {
 		return customerRepo.save(c);
 	}
@@ -55,7 +40,7 @@ public class CustomerService {
 	}
 	
 	public List<Customer> getCustomers(){
-		return customerRepo.findAll();
+		return customerRepo.findAll(Sort.by(Sort.Direction.ASC, "fullName"));
 	}
 
 	public Customer findByDniOrThrow(String dni) {
@@ -71,7 +56,7 @@ public class CustomerService {
 		return summary;
 	}
 
-	public long calculateTotalToCharge() {
+	public BigDecimal calculateTotalToCharge() {
 		return customerRepo.getTotalToChargeAll();
 	}
 }

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fullcars.restapi.dto.TopProductDTO;
 import com.fullcars.restapi.event.StockMovementEvent;
 import com.fullcars.restapi.model.CarPart;
 import com.fullcars.restapi.repository.ICarPartRepository;
@@ -74,7 +75,7 @@ private ICarPartRepository carPartRepo;
 	
 	private String generateSku(CarPart c) {
 		StringBuilder sb = new StringBuilder();
-		sb.append(c.getBrand().getId().toString()).append("-")
+		sb.append(c.getModel().getBrand().getId().toString()).append("-")
 		  .append(c.getCategory().getId().toString()).append("-")
 		  //.append(c.getProvider().getId().toString()).append("-")
 		  .append(c.getId().toString());
@@ -91,7 +92,7 @@ private ICarPartRepository carPartRepo;
 	public long getRegisteredCarParts() {
 		return carPartRepo.count();
 	}
-	public List<CarPart> getTopProducts(int limit) {
+	public List<TopProductDTO> getTopProducts(int limit) {
 	    return carPartRepo.findTopProducts(PageRequest.of(0, limit));
 	}
 

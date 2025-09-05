@@ -1,10 +1,10 @@
 package com.fullcars.restapi.repository;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.fullcars.restapi.model.Customer;
@@ -19,7 +19,7 @@ public interface ICustomerRepository extends JpaRepository<Customer, Long>{
     	    LEFT JOIN sd.sale s
     	    LEFT JOIN Pay p ON p.customer = s.customer
     	""")
-   	Long getTotalToChargeAll();
+    BigDecimal getTotalToChargeAll();
 
 
 }

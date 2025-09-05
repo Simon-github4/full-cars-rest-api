@@ -1,5 +1,7 @@
 package com.fullcars.restapi.model;
 
+import java.math.BigDecimal;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -36,11 +38,11 @@ public class CarPart {
     @ManyToOne//(fetch=FetchType.LAZY)  -----> Problems with JSON Response
     private Category category;
     @ManyToOne
-    private Brand brand;
+    private Model model;
     @ManyToOne
     private Provider provider;
     
-    @Builder.Default
-    private Long basePrice = 0L;
+    @Column(precision = 15, scale = 2)
+    private BigDecimal basePrice;
     //private int purchasePrice;
 }

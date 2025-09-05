@@ -2,6 +2,7 @@ package com.fullcars.restapi.service;
 
 import java.util.List;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -42,6 +43,6 @@ public class ProviderService {
 	}
 	
 	public List<Provider> getCategories(){
-		return providerRepo.findAll();
+		return providerRepo.findAll(Sort.by(Sort.Direction.ASC, "companyName"));
 	}
 }

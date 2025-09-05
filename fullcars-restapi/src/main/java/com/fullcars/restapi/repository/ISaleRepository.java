@@ -37,9 +37,12 @@ public interface ISaleRepository extends JpaRepository<Sale, Long>{
 	@Query("UPDATE Sale s SET s.remitoPath = :filePath WHERE s.id = :id")
 	void updateRemitoPathById(Long id, String filePath);
 	
-	@Query("SELECT s.remitoPath FROM Sale s WHERE s.id = :id")
-	String findRemitoPathById(@Param("id") Long id);
-	
 	@Query("SELECT s FROM Sale s ORDER BY s.date DESC")
     List<Sale> findRecentSales(Pageable pageable);
+	
+	@Query("SELECT s.remitoPath FROM Sale s WHERE s.id = :id")
+	String findRemitoPathById(@Param("id") Long id);
+
+	@Query("SELECT s.customer.email FROM Sale s WHERE s.id = :id")
+	String findEmailById(@Param("id") Long id);
 }

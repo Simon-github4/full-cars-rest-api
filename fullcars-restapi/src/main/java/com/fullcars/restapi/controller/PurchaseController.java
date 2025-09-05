@@ -88,13 +88,6 @@ public class PurchaseController {
 	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al guardar archivo");
 	    }
 	}
-	private void ensureOneDriveFileIsLocal(Path path) throws IOException {
-	    // Esto abre el archivo en modo lectura, lo que fuerza a Windows/OneDrive a descargarlo
-	    try (var channel = FileChannel.open(path, StandardOpenOption.READ)) {
-	        ByteBuffer buffer = ByteBuffer.allocate(1);
-	        channel.read(buffer);
-	    }
-	}
 
 	@GetMapping("/{id}/getBill")
 	public ResponseEntity<InputStreamResource> getBill(@PathVariable Long id) throws IOException {

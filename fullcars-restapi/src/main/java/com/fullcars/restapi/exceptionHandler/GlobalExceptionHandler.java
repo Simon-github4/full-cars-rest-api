@@ -1,13 +1,12 @@
 package com.fullcars.restapi.exceptionHandler;
 
-import java.time.LocalDateTime;
+import java.rmi.ServerException;
 import java.util.stream.Collectors;
 
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -27,6 +26,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(ex.getMessage());
     }
 
+    @ExceptionHandler(ServerException.class)
+    public ResponseEntity<String> handleNotFound(ServerException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
+    }
+    
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<String> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
         String message = "No se pudo completar la operación. Verifica que los datos estén relacionados correctamente.";

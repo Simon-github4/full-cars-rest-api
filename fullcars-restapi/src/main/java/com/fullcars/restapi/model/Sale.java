@@ -1,6 +1,7 @@
 package com.fullcars.restapi.model;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,11 +58,11 @@ public class Sale {
     //private char type;
     //state (completed, pending, canceled)
     @JsonIgnore
-    public long getTotal() {
-    	long total =0;
+    public BigDecimal getTotal() {
+    	BigDecimal total = BigDecimal.ZERO;
     	for(SaleDetail d : details)
-    		total += d.getSubTotal();
-    	return total;
+    		total = total.add(d.getSubTotal());
+    	return total.setScale(2, RoundingMode.HALF_UP);
     }
     
 }

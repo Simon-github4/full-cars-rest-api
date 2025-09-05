@@ -1,5 +1,6 @@
 package com.fullcars.restapi.controller;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fullcars.restapi.dto.SalesData;
 import com.fullcars.restapi.dto.StatisticsGeneralDTO;
+import com.fullcars.restapi.dto.TopProductDTO;
 import com.fullcars.restapi.model.CarPart;
 import com.fullcars.restapi.model.Purchase;
 import com.fullcars.restapi.model.Sale;
@@ -47,7 +49,7 @@ public class StatisticsController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
 
         long itemsRegistered = carPartService.getRegisteredCarParts();
-        long totalToCharge = customerService.calculateTotalToCharge();
+        BigDecimal totalToCharge = customerService.calculateTotalToCharge();
         List<SalesData> salesDataList = saleService.getSales(start, end, null)
                 .stream()
                 .map(sale -> new SalesData(sale.getTotal(), sale.getDate()))
@@ -57,7 +59,7 @@ public class StatisticsController {
     	List<Long> purchasesNotPayed = purchaseService.getPurchasesIdNotPayed(); //= notificationService.getNotifications();
     	
     	List<CarPart> criticalStock = carPartService.getCriticalStock();
-    	List<CarPart> topProducts = carPartService.getTopProducts(10);
+    	List<TopProductDTO> topProducts = carPartService.getTopProducts(10);
     	List<Sale> recentSales = saleService.getRecentSales(10);
 
         return new StatisticsGeneralDTO(
