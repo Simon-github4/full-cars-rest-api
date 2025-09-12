@@ -1,4 +1,4 @@
-package com.fullcars.restapi.service;
+package com.fullcars.restapi.facturacion;
 
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
@@ -9,15 +9,37 @@ import com.fullcars.restapi.event.SaleEvent;
 import com.fullcars.restapi.model.Factura;
 import com.fullcars.restapi.model.Sale;
 import com.fullcars.restapi.repository.IFacturaRepository;
+import com.fullcars.restapi.service.SaleService;
 
 @Service
 public class FacturaService {
 
 	private final IFacturaRepository repo;
-	
-	public FacturaService(IFacturaRepository repo) {
+	private final SaleService saleService;
+    private final FacturaClientFactory facturaClientFactory;
+
+	public FacturaService(IFacturaRepository repo, SaleService saleService, FacturaClientFactory facturaClientFactory) {
 		this.repo = repo;
+		this.saleService = saleService;
+        this.facturaClientFactory = facturaClientFactory;
 	}
+	
+	public FacturaResponse emitirFactura(Long saleId, TiposComprobante tipoC) {
+        Sale sale = saleService.findByIdOrThrow(saleId);
+
+        // Selección del cliente según tipo de comprobante
+        FacturaClient client = facturaClientFactory.getClient();
+
+        FacturaResponse response = client.solicitarCAE(sale);
+
+        /* crear FACT
+        sale.setCae(response.getCae());
+        sale.setCaeVencimiento(response.getVencimiento());
+        saleRepository.save(sale);
+        sale.setFactura();*/
+
+        return response;
+    }
 	
 	@Transactional
 	@EventListener
@@ -29,7 +51,6 @@ public class FacturaService {
 		else if(e.getEventType().equals(EventType.INSERT))
 			save(sale);
 	}
-	
 	@Transactional
 	public Factura save(Sale sale) {
 		Factura factura = new Factura();
