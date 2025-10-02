@@ -1,9 +1,13 @@
 package com.fullcars.restapi.service;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
@@ -28,11 +32,16 @@ public class ProviderService {
 	private IProviderRepository providerRepo;
 	private IProviderMappingRepository mappingRepo;
 	private IProviderPartRepository providerPartsRepo;
-	
-	public ProviderService(IProviderRepository providerRepo, IProviderMappingRepository mappingRepo, IProviderPartRepository providerPartsRepo) {
+	private final TaskQueueService taskService;
+    private ProviderExcelProcessor excelProcessor;
+    
+	public ProviderService(IProviderRepository providerRepo, IProviderMappingRepository mappingRepo,
+			IProviderPartRepository providerPartsRepo, TaskQueueService taskService, ProviderExcelProcessor excelProcessor) {
+		this.taskService = taskService;
 		this.providerRepo = providerRepo;
 		this.mappingRepo = mappingRepo;
 		this.providerPartsRepo = providerPartsRepo;
+		this.excelProcessor = excelProcessor;
 	}
 
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -59,27 +68,37 @@ public class ProviderService {
 	}
 
 	@Transactional
-	public ProviderMapping uploadMapping(ProviderMapping mapping, MultipartFile archivoExcel) throws IOException, Exception {
-        ProviderMapping existingMapping = mappingRepo.findByProviderId(mapping.getProviderId())
-                .orElse(mapping);
-        existingMapping.setNameColumn(mapping.getNameColumn());
-        existingMapping.setBrandColumn(mapping.getBrandColumn());
-        existingMapping.setPriceColumn(mapping.getPriceColumn());
+	public String uploadMapping(ProviderMapping mapping, MultipartFile archivoExcel) throws IOException {
+	    ProviderMapping existingMapping = mappingRepo.findByProviderId(mapping.getProviderId())
+	            .orElse(mapping);
+	    existingMapping.setNameColumn(mapping.getNameColumn());
+	    existingMapping.setBrandColumn(mapping.getBrandColumn());
+	    existingMapping.setPriceColumn(mapping.getPriceColumn());
+	    existingMapping.setLastUpdate(LocalDateTime.now());
+	    ProviderMapping savedMapping = mappingRepo.save(existingMapping);
 
-        existingMapping.setLastUpdate(LocalDateTime.now());
-        ProviderMapping savedMapping = mappingRepo.save(existingMapping);
+	    File tempFile = File.createTempFile("upload_"+mapping.getId(), 
+	    		archivoExcel.getOriginalFilename().substring(archivoExcel.getOriginalFilename().lastIndexOf('.')));
+	    archivoExcel.transferTo(tempFile);
 
-        //String extension = archivoExcel.getOriginalFilename().substring(archivoExcel.getOriginalFilename().lastIndexOf('.') + 1).toLowerCase();
-        List<ProviderPart> partes = FileMapper.mapFile(archivoExcel.getInputStream(), savedMapping, archivoExcel.getOriginalFilename());
-        
-        providerPartsRepo.deleteByProviderMapping(savedMapping);
-        providerPartsRepo.saveAll(partes);
-        
-        return savedMapping;
+	    // Encolar la tarea pasando el File
+	    String taskId = taskService.enqueue(() -> {
+	        try{
+	    		excelProcessor.processExcel(tempFile, savedMapping);
+	        } catch (Exception e) {
+	            e.printStackTrace();
+	        } 
+	    });
+
+	    return taskId; 
 	}
-
+	
 	public ProviderMapping findProviderMapping(Long providerId) {
 		return mappingRepo.findByProviderId(providerId).orElseThrow(() -> 
 				new EntityNotFoundException("Mapeo Proveedor no encontrada con id proveedor: " + providerId));
+	}
+
+	public List<ProviderPart> getProviderParts() {
+		return providerPartsRepo.findAll();
 	}
 }

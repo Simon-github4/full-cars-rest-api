@@ -1,7 +1,8 @@
 package com.fullcars.restapi.controller;
 
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,15 +22,19 @@ import com.fullcars.restapi.model.Provider;
 import com.fullcars.restapi.model.ProviderMapping;
 import com.fullcars.restapi.model.ProviderPart;
 import com.fullcars.restapi.service.ProviderService;
+import com.fullcars.restapi.service.TaskQueueService;
+import com.fullcars.restapi.service.TaskQueueService.TaskStatus;
 
 @RestController
 @RequestMapping(value = "/providers")
 public class ProviderController {
 
-private ProviderService providerService;
-	
-	public ProviderController(ProviderService repo) {
-		this.providerService = repo;
+	private final ProviderService providerService;
+	private final TaskQueueService taskService;
+
+	public ProviderController(ProviderService repo, TaskQueueService taskService) {
+        this.taskService = taskService;
+        this.providerService = repo;
 	}
 	
 	@PostMapping
@@ -62,6 +67,23 @@ private ProviderService providerService;
 	public void delete(@PathVariable Long id) {
 		providerService.delete(id);
 	}
+
+	public record ProviderPartDTO(Long id, String nombre, String marca, BigDecimal precio, Long providerId) {}
+
+	@GetMapping("/parts")
+	@ResponseStatus(HttpStatus.OK)
+	public List<ProviderPart> getProviderParts() {
+	    return providerService.getProviderParts();/*.stream()
+	        .map(p -> new ProviderPartDTO(
+	            p.getId(),
+	            p.getNombre(),
+	            p.getMarca(),
+	            p.getPrecio(),
+	            p.getProviderMapping().getProviderId()
+	        ))
+	        .toList();*/
+	}
+
 	
 	@GetMapping("/{providerId}/mapping")
 	@ResponseStatus(HttpStatus.OK)
@@ -80,12 +102,16 @@ private ProviderService providerService;
         		return ResponseEntity.status(500).body("ID Proveedor Invalido");
         	
         	mapping.setProviderId(providerId);
-            return ResponseEntity.ok(providerService.uploadMapping(mapping, archivoExcel));
+            return ResponseEntity.accepted().body(providerService.uploadMapping(mapping, archivoExcel));
 
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(500).body("Error al procesar archivo: " + e.getMessage());
         }
+    }
+    @GetMapping("/tasks/{taskId}")
+    public ResponseEntity<TaskQueueService.TaskStatusInfo> getTaskStatus(@PathVariable String taskId) {
+        return ResponseEntity.ok(taskService.getStatus(taskId));
     }
 	
 }

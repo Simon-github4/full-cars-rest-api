@@ -1,94 +1,164 @@
 package com.fullcars.restapi.service;
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.zip.ZipException;
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.openxml4j.exceptions.NotOfficeXmlFileException;
+import org.apache.poi.poifs.filesystem.NotOLE2FileException;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.stereotype.Component;
 
 import com.fullcars.restapi.model.ProviderMapping;
 import com.fullcars.restapi.model.ProviderPart;
+import com.monitorjbl.xlsx.StreamingReader;
 
+@Component
 public class FileMapper {
 
-    public static List<ProviderPart> mapFile(InputStream inputStream, ProviderMapping mapping, String filename) throws IOException {
-        if (filename.endsWith(".csv")) {
-            return leerCSV(inputStream, mapping);
-        } else if (filename.endsWith(".xlsx") || filename.endsWith(".xls")) {
-            return leerExcel(inputStream, filename, mapping);
-        } else {
-            throw new IllegalArgumentException("Tipo de archivo no soportado: " + filename);
-        }
-    }
+	private static final int batchSize = 350;
 
-    private static List<ProviderPart> leerExcel(InputStream inputStream, String filename, ProviderMapping mapping) throws IOException {
-        List<ProviderPart> partes = new ArrayList<>();
-        Workbook workbook = filename.endsWith(".xlsx") ? new XSSFWorkbook(inputStream) : new HSSFWorkbook(inputStream);
+	public void mapFile(File tempFile, ProviderMapping mapping, Consumer<List<ProviderPart>> batchConsumer) throws Exception {
+		String extension = tempFile.getName().substring(tempFile.getName().lastIndexOf('.'));
+		System.err.println(extension);
+		if (extension.endsWith(".csv")) {
+			mapCSV(tempFile, mapping, batchConsumer);
+		} else if (extension.endsWith(".xlsx") || extension.endsWith(".xls")) {
+			mapStreaming(tempFile, mapping, batchConsumer);
+		} else {
+			throw new IllegalArgumentException("Tipo de archivo no soportado: " + extension);
+		}
+	}
 
-        Sheet sheet = workbook.getSheetAt(0);
-        Iterator<Row> rowIterator = sheet.iterator();
+	public void mapStreaming(File tempFile, ProviderMapping mapping, Consumer<List<ProviderPart>> batchConsumer)
+			throws Exception {
 
-        int nameIdx = columnLetterToIndex(mapping.getNameColumn());
-        int brandIdx = columnLetterToIndex(mapping.getBrandColumn());
-        int priceIdx = columnLetterToIndex(mapping.getPriceColumn());
+		String filename = tempFile.getName().toLowerCase();
+		int batchSize = 500;
+		List<ProviderPart> batch = new ArrayList<>(batchSize);
 
+	    try (InputStream is = new FileInputStream(tempFile)) {
+	        Workbook workbook = null;
+
+	        // Intento inicial según extensión
+	        try {
+	            if (filename.endsWith(".xls")) {
+	                workbook = new HSSFWorkbook(is);
+	            } else if (filename.endsWith(".xlsx")) {
+	                workbook = StreamingReader.builder()
+	                        .rowCacheSize(100)
+	                        .bufferSize(4096)
+	                        .open(is);
+	            } else {
+	                throw new IllegalArgumentException("Formato de archivo no soportado: " + filename);
+	            }
+	        } catch (NotOLE2FileException | NotOfficeXmlFileException | ZipException e1) {
+	            System.err.println("Archivo no coincide con su extensión, intentando abrir con otro formato...");
+
+	            // Reabrir InputStream para intentar con el otro tipo
+	            try (InputStream is2 = new FileInputStream(tempFile)) {
+	                if (filename.endsWith(".xls")) {
+	                    workbook = StreamingReader.builder()
+	                            .rowCacheSize(100)
+	                            .bufferSize(4096)
+	                            .open(is2);
+	                } else if (filename.endsWith(".xlsx")) {
+	                    workbook = new HSSFWorkbook(is2);
+	                }
+	            } catch (Exception e2) {
+	                // Si falla de nuevo, entonces es corrupto
+	                throw new IllegalArgumentException("Archivo Excel corrupto o inválido: " + filename, e2);
+	            }
+	        }
+	        
+			Sheet sheet = workbook.getSheetAt(0);
+			int nameIdx = columnLetterToIndex(mapping.getNameColumn());
+			int brandIdx = columnLetterToIndex(mapping.getBrandColumn());
+			int priceIdx = columnLetterToIndex(mapping.getPriceColumn());
+
+			boolean primeraLinea = true;
+
+			for (Row row : sheet) {
+				if (primeraLinea) {
+					primeraLinea = false;
+					continue;
+				}
+				if (isRowEmpty(row))
+					continue;
+
+				ProviderPart parte = new ProviderPart();
+				parte.setProviderMapping(mapping);
+				parte.setNombre(getCellValueAsString(row.getCell(nameIdx)));
+				parte.setMarca(getCellValueAsString(row.getCell(brandIdx)));
+				parte.setPrecio(getCellValueAsBigDecimal(row.getCell(priceIdx)));
+
+				batch.add(parte);
+
+				if (batch.size() >= batchSize) {
+					batchConsumer.accept(new ArrayList<>(batch));
+					batch.clear();
+				}
+			}
+
+			if (!batch.isEmpty()) {
+				batchConsumer.accept(new ArrayList<>(batch));
+				batch.clear();
+			}
+	    }
+	}
+	
+	private void mapCSV(File tempFile, ProviderMapping mapping,
+                           Consumer<List<ProviderPart>> batchConsumer) throws IOException {
+    List<ProviderPart> batch = new ArrayList<>(batchSize);
+
+    int nameIdx = columnLetterToIndex(mapping.getNameColumn());
+    int brandIdx = columnLetterToIndex(mapping.getBrandColumn());
+    int priceIdx = columnLetterToIndex(mapping.getPriceColumn());
+
+    try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(tempFile), StandardCharsets.UTF_8))) {
+        String line;
         boolean primeraLinea = true;
-        while (rowIterator.hasNext()) {
-            Row row = rowIterator.next();
+
+        while ((line = br.readLine()) != null) {
             if (primeraLinea) { primeraLinea = false; continue; }
-            if (isRowEmpty(row)) continue;
+            if (line.isBlank()) continue;
+
+            String[] columnas = line.split(";|,");
+            if (columnas.length <= Math.max(nameIdx, Math.max(brandIdx, priceIdx))) continue;
 
             ProviderPart parte = new ProviderPart();
             parte.setProviderMapping(mapping);
-            parte.setNombre(getCellValueAsString(row.getCell(nameIdx)));
-            parte.setMarca(getCellValueAsString(row.getCell(brandIdx)));
-            parte.setPrecio(getCellValueAsBigDecimal(row.getCell(priceIdx)));
-            partes.add(parte);
-        }
+            parte.setNombre(columnas[nameIdx].trim());
+            parte.setMarca(columnas[brandIdx].trim());
+            parte.setPrecio(new BigDecimal(columnas[priceIdx].trim()));
 
-        workbook.close();
-        return partes;
-    }
+            batch.add(parte);
 
-    private static List<ProviderPart> leerCSV(InputStream inputStream, ProviderMapping mapping) throws IOException {
-        List<ProviderPart> partes = new ArrayList<>();
-
-        int nameIdx = columnLetterToIndex(mapping.getNameColumn());
-        int brandIdx = columnLetterToIndex(mapping.getBrandColumn());
-        int priceIdx = columnLetterToIndex(mapping.getPriceColumn());
-
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
-            String line;
-            boolean primeraLinea = true;
-
-            while ((line = br.readLine()) != null) {
-                if (primeraLinea) { primeraLinea = false; continue; }
-                if (line.isBlank()) continue;
-
-                String[] columnas = line.split(";|,");
-                if (columnas.length <= Math.max(nameIdx, Math.max(brandIdx, priceIdx))) continue;
-
-                ProviderPart parte = new ProviderPart();
-                parte.setProviderMapping(mapping);
-                parte.setNombre(columnas[nameIdx].trim());
-                parte.setMarca(columnas[brandIdx].trim());
-                parte.setPrecio(new BigDecimal(columnas[priceIdx].trim()));
-                partes.add(parte);
+            if (batch.size() >= batchSize) {
+                batchConsumer.accept(new ArrayList<>(batch)); // pasa copia
+                batch.clear();
             }
         }
 
-        return partes;
+        if (!batch.isEmpty()) {
+            batchConsumer.accept(new ArrayList<>(batch));
+            batch.clear();
+        }
     }
+}
+
 
     // ------------------------------------------------------
     // Helpers
