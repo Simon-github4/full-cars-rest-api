@@ -2,8 +2,6 @@ package com.fullcars.restapi.facturacion;
 
 import org.springframework.stereotype.Component;
 
-import com.fullcars.restapi.model.Sale;
-
 @Component
 public class FacturaClientFactory {
 

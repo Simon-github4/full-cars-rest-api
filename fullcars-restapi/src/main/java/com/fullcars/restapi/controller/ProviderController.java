@@ -22,8 +22,8 @@ import com.fullcars.restapi.model.Provider;
 import com.fullcars.restapi.model.ProviderMapping;
 import com.fullcars.restapi.model.ProviderPart;
 import com.fullcars.restapi.service.ProviderService;
-import com.fullcars.restapi.service.TaskQueueService;
-import com.fullcars.restapi.service.TaskQueueService.TaskStatus;
+import com.fullcars.restapi.service.excel.TaskQueueService;
+import com.fullcars.restapi.service.excel.TaskQueueService.TaskStatus;
 
 @RestController
 @RequestMapping(value = "/providers")

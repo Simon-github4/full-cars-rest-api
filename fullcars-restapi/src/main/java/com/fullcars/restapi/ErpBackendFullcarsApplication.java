@@ -8,13 +8,14 @@ import org.springframework.context.annotation.FilterType;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.annotation.EnableAsync;
 
-@ComponentScan(
+/*@ComponentScan(
 	    basePackages = "com.fullcars.restapi",
 	    excludeFilters = @ComponentScan.Filter(
 	        type = FilterType.REGEX,
 	        pattern = "com\\.fullcars\\.restapi\\.facturacion\\..*"
 	    )
-	)@EnableJpaRepositories(basePackages = "com.fullcars.restapi.repository")
+	)*/
+@EnableJpaRepositories(basePackages = "com.fullcars.restapi.repository")
 @EntityScan(basePackages = "com.fullcars.restapi.model")
 @SpringBootApplication(scanBasePackages = "com.fullcars.restapi")
 @EnableAsync

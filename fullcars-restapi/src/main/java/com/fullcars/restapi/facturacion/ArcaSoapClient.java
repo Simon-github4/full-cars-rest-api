@@ -4,7 +4,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ArcaSoapClient {
-
+/*
     public FECAEResponse callFECAESolicitar(FECAEDetRequest request) {
         // Aquí invocarías el stub generado por JAX-WS/Axis2
         // return feCompStub.FECAESolicitar(request);
@@ -14,5 +14,5 @@ public class ArcaSoapClient {
     public CmpResponse callMTXCA(CmpDetalleType detalle) {
         // Llamada real al servicio WSMTXCA
         return new CmpResponse(); // mock
-    }
+    }*/
 }

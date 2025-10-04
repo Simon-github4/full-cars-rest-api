@@ -1,4 +1,4 @@
-package com.fullcars.restapi.service;
+package com.fullcars.restapi.service.excel;
 
 import java.io.File;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -29,7 +29,7 @@ public class ProviderExcelProcessor {
     //@Async
     @Transactional
     public void processExcel(File tempFile, ProviderMapping mapping) throws Exception {
-        providerPartsRepo.deleteByProviderMapping(mapping);
+    	providerPartsRepo.deleteByProviderMappingNative(mapping);
         providerPartsRepo.flush();
 
         AtomicInteger cant = new AtomicInteger(0);

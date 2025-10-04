@@ -12,11 +12,12 @@ public class WsmtxcaClient implements FacturaClient {
     public WsmtxcaClient(ArcaSoapClient soapClient) {
         this.soapClient = soapClient;
     }
-
+    
     @Override
     public FacturaResponse solicitarCAE(Sale sale) {
+		return null;
         // Mapear Sale → CmpDetalleType (WSMTXCA)
-        CmpDetalleType detalle = FacturaMapper.toCmpDetalleType(sale);
+       /* CmpDetalleType detalle = FacturaMapper.toCmpDetalleType(sale);
 
         CmpResponse response = soapClient.callMTXCA(detalle);
 
@@ -24,7 +25,7 @@ public class WsmtxcaClient implements FacturaClient {
                 response.getCae(),
                 response.getFchVto(),
                 response.getNroComprobante()
-        );
+        );*/
     }
 }
 

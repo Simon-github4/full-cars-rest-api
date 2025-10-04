@@ -48,7 +48,7 @@ public class FacturaService {
 		Sale sale = e.getEntity();
 		if(e.getEventType().equals(EventType.DELETE))
 			deleteBySaleId(sale.getId());
-		else if(e.getEventType().equals(EventType.INSERT))
+		else if(e.getEventType().equals(EventType.INSERT) && sale.getSaleNumber() != null && !sale.getSaleNumber().isBlank())
 			save(sale);
 	}
 	@Transactional

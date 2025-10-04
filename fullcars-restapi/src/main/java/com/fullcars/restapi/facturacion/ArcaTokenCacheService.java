@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class ArcaTokenCacheService {
 
-    private final WsaaClient wsaaClient;
+    /*private final WsaaClient wsaaClient;
     private final Map<String, ArcaAuth> cache = new ConcurrentHashMap<>();
 
     public ArcaTokenCacheService(WsaaClient wsaaClient) {
@@ -27,5 +27,5 @@ public class ArcaTokenCacheService {
         ArcaAuth newToken = wsaaClient.requestToken(service);
         cache.put(service, newToken);
         return newToken;
-    }
+    }*/
 }

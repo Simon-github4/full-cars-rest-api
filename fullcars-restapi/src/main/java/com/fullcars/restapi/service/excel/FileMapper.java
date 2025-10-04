@@ -1,4 +1,4 @@
-package com.fullcars.restapi.service;
+package com.fullcars.restapi.service.excel;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -16,6 +16,7 @@ import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.NotOfficeXmlFileException;
 import org.apache.poi.poifs.filesystem.NotOLE2FileException;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -28,7 +29,8 @@ import com.monitorjbl.xlsx.StreamingReader;
 @Component
 public class FileMapper {
 
-	private static final int batchSize = 350;
+	private static final int batchSize = 500;
+    private final static DataFormatter dataFormatter = new DataFormatter();
 
 	public void mapFile(File tempFile, ProviderMapping mapping, Consumer<List<ProviderPart>> batchConsumer) throws Exception {
 		String extension = tempFile.getName().substring(tempFile.getName().lastIndexOf('.'));
@@ -95,20 +97,22 @@ public class FileMapper {
 					primeraLinea = false;
 					continue;
 				}
-				if (isRowEmpty(row))
-					continue;
-
-				ProviderPart parte = new ProviderPart();
-				parte.setProviderMapping(mapping);
-				parte.setNombre(getCellValueAsString(row.getCell(nameIdx)));
-				parte.setMarca(getCellValueAsString(row.getCell(brandIdx)));
-				parte.setPrecio(getCellValueAsBigDecimal(row.getCell(priceIdx)));
-
-				batch.add(parte);
-
-				if (batch.size() >= batchSize) {
-					batchConsumer.accept(new ArrayList<>(batch));
-					batch.clear();
+				String name = getCellValueAsString(row.getCell(nameIdx)).trim();
+			    String price = getCellValueAsString(row.getCell(priceIdx)).trim();
+				if (!name.isBlank() || !price.isBlank()) {
+					String brand = getCellValueAsString(row.getCell(brandIdx)).trim();
+					ProviderPart parte = new ProviderPart();
+					parte.setProviderMapping(mapping);
+					parte.setNombre(name);
+					parte.setMarca(brand);
+					parte.setPrecio(getCellValueAsBigDecimal(row.getCell(priceIdx)));
+	
+					batch.add(parte);
+	
+					if (batch.size() >= batchSize) {
+						batchConsumer.accept(new ArrayList<>(batch));
+						batch.clear();
+					}
 				}
 			}
 
@@ -163,13 +167,16 @@ public class FileMapper {
     // ------------------------------------------------------
     // Helpers
     // ------------------------------------------------------
-    private static boolean isRowEmpty(Row row) {
-        for (int c = 0; c < row.getLastCellNum(); c++) {
-            Cell cell = row.getCell(c);
-            if (cell != null && !getCellValueAsString(cell).isBlank()) return false;
-        }
-        return true;
-    }
+	private static boolean isRowEmpty(Row row) {
+	    if (row == null) return true;
+	    for (int c = 0; c < row.getLastCellNum(); c++) {
+	        Cell cell = row.getCell(c);
+	        if (cell != null && !getCellValueAsString(cell).isBlank()) {
+	            return false; // Encontró algo
+	        }
+	    }
+	    return true;
+	}
 
     private static String getCellValueAsString(Cell cell) {
         if (cell == null) return "";
@@ -181,21 +188,70 @@ public class FileMapper {
             default: return "";
         }
     }
-
+    
     private static BigDecimal getCellValueAsBigDecimal(Cell cell) {
         if (cell == null) return BigDecimal.ZERO;
-        switch (cell.getCellType()) {
-            case NUMERIC: return BigDecimal.valueOf(cell.getNumericCellValue());
-            case STRING:
-                try { return new BigDecimal(cell.getStringCellValue()); }
-                catch (NumberFormatException e) { return BigDecimal.ZERO; }
-            default: return BigDecimal.ZERO;
+
+        try {
+            switch (cell.getCellType()) {
+                case NUMERIC:
+                    return BigDecimal.valueOf(cell.getNumericCellValue());
+
+                case STRING:
+                    String value = cell.getStringCellValue().trim();
+                    if (value.isEmpty()) return BigDecimal.ZERO;
+
+                    // Manejo estilo europeo / separador decimal
+                    if (value.contains(",") && value.contains(".")) {
+                        value = value.replace(".", "").replace(",", ".");
+                    } else if (value.contains(",") && !value.contains(".")) {
+                        value = value.replace(",", ".");
+                    }
+                    return new BigDecimal(value);
+
+                case FORMULA:
+                    // si querés, podés intentar evaluar la fórmula a numérico
+                    try {
+                        return BigDecimal.valueOf(cell.getNumericCellValue());
+                    } catch (Exception e) {
+                        return BigDecimal.ZERO;
+                    }
+                case BLANK:
+                case BOOLEAN:
+                case ERROR:
+                default:
+                    return BigDecimal.ZERO;
+            }
+        } catch (Exception e) {
+            return BigDecimal.ZERO;
         }
     }
+/*
+    private static BigDecimal getCellValueAsBigDecimal(Cell cell) {
+        if (cell == null) return BigDecimal.ZERO;
+         
+        //DataFormatter lee el valor tal como lo muestra Excel
+        String value = dataFormatter.formatCellValue(cell).trim();
 
-    /**
-     * Convierte letras de columna Excel (A, B, ..., Z, AA, AB, ...) a índice numérico (0,1,...)
-     */
+        if (value.isEmpty()) return BigDecimal.ZERO;
+
+        try {
+            // Caso 1: estilo europeo -> "40.000,00"
+            if (value.contains(",") && value.contains(".")) {
+                value = value.replace(".", "");   // quita separador de miles
+                value = value.replace(",", "."); // cambia decimal a punto
+            }
+            // Caso 2: solo coma decimal -> "123,45"
+            else if (value.contains(",") && !value.contains(".")) 
+                value = value.replace(",", ".");
+            // Caso 3: solo punto decimal -> "12345.67" (no cambia nada)
+            return new BigDecimal(value);
+        } catch (NumberFormatException e) {
+            return BigDecimal.ZERO;
+        }
+    }*/
+
+    //Convierte letras de columna Excel (A, B, ..., Z, AA, AB, ...) a índice numérico (0,1,...)
     public static int columnLetterToIndex(String letter) {
         if (letter == null || letter.isBlank()) return 0;
         letter = letter.toUpperCase();

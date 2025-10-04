@@ -17,10 +17,10 @@ public class FacturaController {
         this.facturaService = facturaService;
     }
 
-    @PostMapping("/{saleId}")
+    /*@PostMapping("/{saleId}")
     public ResponseEntity<FacturaResponse> facturar(@PathVariable Long saleId, @RequestParam TiposComprobante tipoC) {
         FacturaResponse response = facturaService.emitirFactura(saleId, tipoC);
         return ResponseEntity.ok(response);
-    }
+    }*/
 }
 

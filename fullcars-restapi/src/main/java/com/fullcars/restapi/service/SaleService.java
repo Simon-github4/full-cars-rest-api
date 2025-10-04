@@ -109,8 +109,8 @@ public class SaleService {
         
         try (var inputStream = file.getInputStream()) {
             Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
-            mailService.sendEmail(saleRepo.findEmailById(id), "Nueva venta registrada",
-                    			"<h1>Se generó una venta</h1><p>ID: " + id + "</p>", 
+            mailService.sendEmail(saleRepo.findEmailById(id), "Remito",
+                    			"",//"<h1>Se generó una venta</h1><p>ID: " + id + "</p>", 
                     			filePath.toFile());
         }
 		

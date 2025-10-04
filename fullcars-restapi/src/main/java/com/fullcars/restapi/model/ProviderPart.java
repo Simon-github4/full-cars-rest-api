@@ -9,6 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -21,9 +22,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ProviderPart {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "provider_part_seq")
+	@SequenceGenerator(name = "provider_part_seq", sequenceName = "provider_part_seq", allocationSize = 500)
+	private Long id;
+
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "provider_id", nullable = false)

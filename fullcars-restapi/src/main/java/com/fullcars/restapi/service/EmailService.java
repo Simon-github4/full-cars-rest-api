@@ -71,7 +71,7 @@ public class EmailService {
         helper.setText(text, true);
 
         if (file != null) {
-            helper.addAttachment(file.getName(), file);
+            helper.addAttachment("Remito", file);
         }
 
         mailSender.send(message);

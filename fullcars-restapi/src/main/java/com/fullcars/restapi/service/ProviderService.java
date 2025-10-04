@@ -22,6 +22,8 @@ import com.fullcars.restapi.model.Purchase;
 import com.fullcars.restapi.repository.IProviderMappingRepository;
 import com.fullcars.restapi.repository.IProviderPartRepository;
 import com.fullcars.restapi.repository.IProviderRepository;
+import com.fullcars.restapi.service.excel.ProviderExcelProcessor;
+import com.fullcars.restapi.service.excel.TaskQueueService;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -83,11 +85,12 @@ public class ProviderService {
 
 	    // Encolar la tarea pasando el File
 	    String taskId = taskService.enqueue(() -> {
-	        try{
-	    		excelProcessor.processExcel(tempFile, savedMapping);
-	        } catch (Exception e) {
-	            e.printStackTrace();
-	        } 
+	    	try {
+				excelProcessor.processExcel(tempFile, savedMapping);
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new RuntimeException(e.getMessage());
+			}
 	    });
 
 	    return taskId; 
