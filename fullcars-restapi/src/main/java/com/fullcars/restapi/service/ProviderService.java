@@ -1,19 +1,19 @@
 package com.fullcars.restapi.service;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Stream;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fullcars.restapi.dto.ProviderPartDTO;
 import com.fullcars.restapi.event.PurchaseEvent;
 import com.fullcars.restapi.model.Provider;
 import com.fullcars.restapi.model.ProviderMapping;
@@ -26,7 +26,6 @@ import com.fullcars.restapi.service.excel.ProviderExcelProcessor;
 import com.fullcars.restapi.service.excel.TaskQueueService;
 
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
 
 @Service
 public class ProviderService {
@@ -51,20 +50,20 @@ public class ProviderService {
 		Purchase sale = e.getEntity();
 		System.err.println("PurchaseEvent REceived!!!; ProviderService" + e.getSource());
 	}
-	
+	@Transactional
 	public Provider save(Provider c) {
 		return providerRepo.save(c);
 	}
-	
+	@Transactional
 	public void delete(Long id) {
         providerRepo.deleteById(id);
 	}
-	
+	@Transactional(readOnly = true)
 	public Provider findByIdOrThrow(Long id) {
 		return providerRepo.findById(id).orElseThrow(() -> 
 						new EntityNotFoundException("Proveedor no encontrada con id: " + id));
 	}
-	
+	@Transactional(readOnly = true)
 	public List<Provider> getCategories(){
 		return providerRepo.findAll(Sort.by(Sort.Direction.ASC, "companyName"));
 	}
@@ -95,13 +94,21 @@ public class ProviderService {
 
 	    return taskId; 
 	}
-	
+	@Transactional(readOnly = true)
 	public ProviderMapping findProviderMapping(Long providerId) {
 		return mappingRepo.findByProviderId(providerId).orElseThrow(() -> 
 				new EntityNotFoundException("Mapeo Proveedor no encontrada con id proveedor: " + providerId));
 	}
-
+	@Transactional(readOnly = true)
 	public List<ProviderPart> getProviderParts() {
 		return providerPartsRepo.findAll();
 	}
+	
+	@Transactional(readOnly = true)
+	public List<ProviderPartDTO> getProviderPartsDTO() {
+	    try (Stream<ProviderPartDTO> stream = providerPartsRepo.streamAllDTOs()) {
+	        return stream.toList();
+	    }
+	}
+
 }

@@ -57,12 +57,12 @@ private ICarPartRepository carPartRepo;
 	public void delete(Long id) {
         carPartRepo.deleteById(id);
 	}
-	
+	@Transactional(readOnly = true)
 	public CarPart findByIdOrThrow(Long id) {
 		return carPartRepo.findById(id).orElseThrow(() -> 
 						new EntityNotFoundException("Auto Parte no encontrada con id: " + id));
 	}
-	
+	@Transactional(readOnly = true)
 	public CarPart findBySku(String sku) {
 		return carPartRepo.findBySku(sku).orElseThrow(() -> 
 						new EntityNotFoundException("Auto Parte no encontrada con sku: " + sku));
@@ -84,14 +84,15 @@ private ICarPartRepository carPartRepo;
 	private String getSafePrefix(String value) {
         return value == null ? "XXX" : value.replaceAll("[^A-Za-z]", "").toUpperCase().substring(0, Math.min(3, value.length()));
     }
-
+	@Transactional(readOnly = true)
 	public List<CarPart> getCriticalStock() {
 		return carPartRepo.findByStockLessThan(5L);
 	}
-
+	@Transactional(readOnly = true)
 	public long getRegisteredCarParts() {
 		return carPartRepo.count();
 	}
+	@Transactional(readOnly = true)
 	public List<TopProductDTO> getTopProducts(int limit) {
 	    return carPartRepo.findTopProducts(PageRequest.of(0, limit));
 	}

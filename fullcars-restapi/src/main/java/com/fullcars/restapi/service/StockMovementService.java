@@ -121,12 +121,12 @@ public class StockMovementService {//implements ApplicationListener<SaleEvent>{
 	public List<StockMovement> getStockMovements(){
 		return stockRepo.findAll();
 	}
-	
+	@Transactional(readOnly = true)
 	public Long getCurrentStockByCarPartId(Long id) {
 		Long stock = stockRepo.getCurrentStockByCarPartId(id);
 		return stock != null ? stock : 0;
 	}
-
+	@Transactional(readOnly = true)
 	public List<StockMovement> getStockMovementsBetween(LocalDate start, LocalDate end) {
 		return stockRepo.findByDateBetween(start, end);
 	}

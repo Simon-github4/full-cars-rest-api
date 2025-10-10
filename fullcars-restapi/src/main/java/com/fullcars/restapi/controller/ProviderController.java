@@ -2,8 +2,8 @@ package com.fullcars.restapi.controller;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -18,12 +18,14 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fullcars.restapi.dto.ProviderPartDTO;
 import com.fullcars.restapi.model.Provider;
 import com.fullcars.restapi.model.ProviderMapping;
 import com.fullcars.restapi.model.ProviderPart;
 import com.fullcars.restapi.service.ProviderService;
 import com.fullcars.restapi.service.excel.TaskQueueService;
-import com.fullcars.restapi.service.excel.TaskQueueService.TaskStatus;
+
+import jakarta.persistence.EntityManager;
 
 @RestController
 @RequestMapping(value = "/providers")
@@ -31,7 +33,8 @@ public class ProviderController {
 
 	private final ProviderService providerService;
 	private final TaskQueueService taskService;
-
+	@Autowired
+	private EntityManager em;
 	public ProviderController(ProviderService repo, TaskQueueService taskService) {
         this.taskService = taskService;
         this.providerService = repo;
@@ -68,12 +71,16 @@ public class ProviderController {
 		providerService.delete(id);
 	}
 
-	public record ProviderPartDTO(Long id, String nombre, String marca, BigDecimal precio, Long providerId) {}
-
 	@GetMapping("/parts")
 	@ResponseStatus(HttpStatus.OK)
-	public List<ProviderPart> getProviderParts() {
-	    return providerService.getProviderParts();/*.stream()
+	public List<ProviderPartDTO> getProviderParts() {
+		//Thread t = new Thread(()->{
+		//	System.gc();
+		//});
+		//t.start();
+		return providerService.getProviderPartsDTO();
+	    // em.clear();
+	     /*.stream() 
 	        .map(p -> new ProviderPartDTO(
 	            p.getId(),
 	            p.getNombre(),
