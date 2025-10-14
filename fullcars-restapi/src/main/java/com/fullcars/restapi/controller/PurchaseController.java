@@ -58,6 +58,12 @@ public class PurchaseController {
 		return purchaseService.findByIdOrThrow(id);
 	}
 	
+	@GetMapping("/search")
+	@ResponseStatus(HttpStatus.OK)
+	public List<Purchase> getPurchase(@RequestParam String facturaNumber){
+		return purchaseService.findByfacturaNumber(facturaNumber);
+	}
+	
 	@GetMapping
 	@ResponseStatus(HttpStatus.OK)
 	public List<Purchase> getPurchases(){

@@ -128,5 +128,9 @@ public class PurchaseService {
 	public List<Long> getPurchasesIdNotPayed() {
 		return purchaseRepo.findByIsPayed(false);
 	}
+
+	public List<Purchase> findByfacturaNumber(String facturaNumber) {
+		return purchaseRepo.findByFacturaNumberStartingWith(facturaNumber);
+	}
 	
 }

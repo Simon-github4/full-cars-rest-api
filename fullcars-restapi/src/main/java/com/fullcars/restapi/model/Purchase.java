@@ -37,8 +37,9 @@ public class Purchase {
     private LocalDate date;
     private BigDecimal taxes;
     private String observations;
-    @Builder.Default
-    private boolean isPayed = true;
+    private String facturaNumber;
+    //@Builder.Default
+    private boolean isPayed;// = false;
     private String filePath;
     @ManyToOne
     private Provider provider;

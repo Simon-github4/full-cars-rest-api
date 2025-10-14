@@ -25,7 +25,10 @@ public interface IProviderPartRepository extends JpaRepository<ProviderPart, Lon
                 p.nombre,
                 p.marca,
                 p.precio,
-                p.providerMapping.providerId
+                p.providerMapping.providerId,
+                p.provCod,
+                p.quality,
+                p.category
             )
             FROM ProviderPart p
         """)

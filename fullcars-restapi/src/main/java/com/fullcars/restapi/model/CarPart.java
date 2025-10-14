@@ -32,13 +32,17 @@ public class CarPart {
     @Column(unique = true, nullable = false)
     private String sku;
 	
+    @Column(unique = false, nullable = true)
+    private String providerSku;
+    private String quality;
+    
     @Builder.Default
     private Long stock = 0L;
 
     @ManyToOne//(fetch=FetchType.LAZY)  -----> Problems with JSON Response
     private Category category;
     @ManyToOne
-    private Model model;
+    private Brand brand;
     @ManyToOne
     private Provider provider;
     

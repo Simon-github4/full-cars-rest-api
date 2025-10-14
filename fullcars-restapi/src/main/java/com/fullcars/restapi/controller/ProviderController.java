@@ -1,9 +1,8 @@
 package com.fullcars.restapi.controller;
 
-import java.math.BigDecimal;
+import java.rmi.ServerException;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -19,24 +18,25 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.fullcars.restapi.dto.ProviderPartDTO;
+import com.fullcars.restapi.model.CarPart;
 import com.fullcars.restapi.model.Provider;
 import com.fullcars.restapi.model.ProviderMapping;
 import com.fullcars.restapi.model.ProviderPart;
+import com.fullcars.restapi.service.ProviderPartService;
 import com.fullcars.restapi.service.ProviderService;
 import com.fullcars.restapi.service.excel.TaskQueueService;
-
-import jakarta.persistence.EntityManager;
 
 @RestController
 @RequestMapping(value = "/providers")
 public class ProviderController {
 
 	private final ProviderService providerService;
+	private final ProviderPartService providerPartService;
 	private final TaskQueueService taskService;
-	@Autowired
-	private EntityManager em;
-	public ProviderController(ProviderService repo, TaskQueueService taskService) {
-        this.taskService = taskService;
+
+	public ProviderController(ProviderService repo, TaskQueueService taskService, ProviderPartService providerPartService) {
+		this.providerPartService = providerPartService;
+		this.taskService = taskService;
         this.providerService = repo;
 	}
 	
@@ -71,26 +71,19 @@ public class ProviderController {
 		providerService.delete(id);
 	}
 
+//---------------------------PROVIDER PARTS--------------------------------------------------------------
+
 	@GetMapping("/parts")
 	@ResponseStatus(HttpStatus.OK)
 	public List<ProviderPartDTO> getProviderParts() {
-		//Thread t = new Thread(()->{
-		//	System.gc();
-		//});
-		//t.start();
 		return providerService.getProviderPartsDTO();
-	    // em.clear();
-	     /*.stream() 
-	        .map(p -> new ProviderPartDTO(
-	            p.getId(),
-	            p.getNombre(),
-	            p.getMarca(),
-	            p.getPrecio(),
-	            p.getProviderMapping().getProviderId()
-	        ))
-	        .toList();*/
 	}
 
+	@PostMapping("/from-provider")
+    public ResponseEntity<CarPart> createOrGetFromProvider(@RequestBody ProviderPartDTO providerPart) throws ServerException {
+        CarPart carPart = providerPartService.findOrCreateFromProvider(providerPart);
+        return ResponseEntity.ok(carPart);
+    }
 	
 	@GetMapping("/{providerId}/mapping")
 	@ResponseStatus(HttpStatus.OK)

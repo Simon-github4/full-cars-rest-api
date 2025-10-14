@@ -19,6 +19,7 @@ public interface IPurchaseRepository extends JpaRepository<Purchase, Long>{
 	List<Purchase> findByDateBetweenAndProviderId(LocalDate start, LocalDate end, Long providerId);
 	List<Purchase> findByDateBetween(LocalDate start, LocalDate end);
 	List<Purchase> findByProviderId(Long providerId);	
+
 	@Modifying
 	@Transactional
 	@Query("UPDATE Purchase p SET p.filePath = :filePath WHERE p.id = :id")
@@ -34,6 +35,9 @@ public interface IPurchaseRepository extends JpaRepository<Purchase, Long>{
 	
 	@Query("SELECT p.id FROM Purchase p WHERE p.isPayed = :isPayed")
 	List<Long> findByIsPayed(boolean isPayed);
+	
+	@Query("SELECT p FROM Purchase p WHERE LOWER(p.facturaNumber) LIKE LOWER(CONCAT(:facturaNumber, '%'))")
+	List<Purchase> findByFacturaNumberStartingWith(String facturaNumber);
 
 
 }

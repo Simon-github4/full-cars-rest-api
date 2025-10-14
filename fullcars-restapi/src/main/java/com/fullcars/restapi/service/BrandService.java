@@ -46,5 +46,13 @@ public class BrandService {
 	public List<Brand> getBrands(){
 		return brandRepo.findAll(Sort.by(Sort.Direction.ASC, "name"));
 	}
+	@Transactional
+	public Brand getBrandByNameOrCreate(String name) throws ServerException {
+		Brand b = findByName(name);
+		if(b != null)
+			return b;
+		else
+			return save(new Brand(null, name));
+	}
 	
 }

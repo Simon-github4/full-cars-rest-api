@@ -1,6 +1,7 @@
 package com.fullcars.restapi.service;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.PageRequest;
@@ -47,6 +48,8 @@ private ICarPartRepository carPartRepo;
 			return carPartRepo.save(c);
 		}
 		else {
+			c.setSku("");
+			c.setStock(0L);//por las dudas 
 			CarPart saved = carPartRepo.save(c);
 			saved.setSku(generateSku(saved));
 			carPartRepo.save(saved);
@@ -75,15 +78,13 @@ private ICarPartRepository carPartRepo;
 	
 	private String generateSku(CarPart c) {
 		StringBuilder sb = new StringBuilder();
-		sb.append(c.getModel().getBrand().getId().toString()).append("-")
+		sb.append(c.getBrand().getId().toString()).append("-")
 		  .append(c.getCategory().getId().toString()).append("-")
 		  //.append(c.getProvider().getId().toString()).append("-")
 		  .append(c.getId().toString());
 		return sb.toString();
 	}
-	private String getSafePrefix(String value) {
-        return value == null ? "XXX" : value.replaceAll("[^A-Za-z]", "").toUpperCase().substring(0, Math.min(3, value.length()));
-    }
+	
 	@Transactional(readOnly = true)
 	public List<CarPart> getCriticalStock() {
 		return carPartRepo.findByStockLessThan(5L);
@@ -96,5 +97,12 @@ private ICarPartRepository carPartRepo;
 	public List<TopProductDTO> getTopProducts(int limit) {
 	    return carPartRepo.findTopProducts(PageRequest.of(0, limit));
 	}
+	
+	private String getSafePrefix(String value) {
+        return value == null ? "XXX" : value.replaceAll("[^A-Za-z]", "").toUpperCase().substring(0, Math.min(3, value.length()));
+    }
 
+	public Optional<CarPart> findByProviderCodeAndProviderId(String provCod, Long providerId, String name) {
+		return carPartRepo.findByProviderCodeAndProviderIdAndName(provCod, providerId, name);
+	}
 }

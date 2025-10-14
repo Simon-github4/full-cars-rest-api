@@ -1,5 +1,6 @@
 package com.fullcars.restapi.controller;
 
+import java.rmi.ServerException;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -27,13 +28,13 @@ private CategoryService categoryService;
 	
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
-	public Category post(@RequestBody Category b) {
+	public Category post(@RequestBody Category b) throws ServerException {
 		return categoryService.save(b);
 	}
 //----------------PODRIAN SER EL MISMO, USAN EL MISMO METODO SAVE-------------------------
 	@PutMapping("/{id}")
 	@ResponseStatus(HttpStatus.OK)
-	public Category put(@PathVariable Long id, @RequestBody Category b) {
+	public Category put(@PathVariable Long id, @RequestBody Category b) throws ServerException {
 		if (!id.equals(b.getId())) 
             throw new IllegalArgumentException("El ID enviado y el ID de la categoria deben coincidir");
         return categoryService.save(b);

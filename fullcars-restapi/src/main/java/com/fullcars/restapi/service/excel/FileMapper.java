@@ -89,6 +89,9 @@ public class FileMapper {
 			int nameIdx = columnLetterToIndex(mapping.getNameColumn());
 			int brandIdx = columnLetterToIndex(mapping.getBrandColumn());
 			int priceIdx = columnLetterToIndex(mapping.getPriceColumn());
+			int catIdx = columnLetterToIndex(mapping.getCategoryColumn());
+			int qualIdx = columnLetterToIndex(mapping.getQualityColumn());
+			int provCodIdx = columnLetterToIndex(mapping.getProvCodColumn());
 
 			boolean primeraLinea = true;
 
@@ -101,12 +104,16 @@ public class FileMapper {
 			    String price = getCellValueAsString(row.getCell(priceIdx)).trim();
 				if (!name.isBlank() || !price.isBlank()) {
 					String brand = getCellValueAsString(row.getCell(brandIdx)).trim();
+					
 					ProviderPart parte = new ProviderPart();
 					parte.setProviderMapping(mapping);
 					parte.setNombre(name);
 					parte.setMarca(brand);
 					parte.setPrecio(getCellValueAsBigDecimal(row.getCell(priceIdx)));
-	
+					parte.setCategory(getCellValueAsString(row.getCell(catIdx)));
+					parte.setQuality(getCellValueAsString(row.getCell(qualIdx)));
+					parte.setProvCod(getCellValueAsString(row.getCell(provCodIdx)));
+					
 					batch.add(parte);
 	
 					if (batch.size() >= batchSize) {
@@ -127,10 +134,13 @@ public class FileMapper {
                            Consumer<List<ProviderPart>> batchConsumer) throws IOException {
     List<ProviderPart> batch = new ArrayList<>(batchSize);
 
-    int nameIdx = columnLetterToIndex(mapping.getNameColumn());
-    int brandIdx = columnLetterToIndex(mapping.getBrandColumn());
-    int priceIdx = columnLetterToIndex(mapping.getPriceColumn());
-
+	int nameIdx = columnLetterToIndex(mapping.getNameColumn());
+	int brandIdx = columnLetterToIndex(mapping.getBrandColumn());
+	int priceIdx = columnLetterToIndex(mapping.getPriceColumn());
+	int catIdx = columnLetterToIndex(mapping.getCategoryColumn());
+	int qualIdx = columnLetterToIndex(mapping.getQualityColumn());
+	int provCodIdx = columnLetterToIndex(mapping.getProvCodColumn());
+	
     try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(tempFile), StandardCharsets.UTF_8))) {
         String line;
         boolean primeraLinea = true;
@@ -147,7 +157,10 @@ public class FileMapper {
             parte.setNombre(columnas[nameIdx].trim());
             parte.setMarca(columnas[brandIdx].trim());
             parte.setPrecio(new BigDecimal(columnas[priceIdx].trim()));
-
+            parte.setCategory(columnas[catIdx].trim());
+			parte.setQuality(columnas[qualIdx].trim());
+			parte.setProvCod(columnas[provCodIdx].trim());
+			
             batch.add(parte);
 
             if (batch.size() >= batchSize) {
@@ -253,7 +266,7 @@ public class FileMapper {
 
     //Convierte letras de columna Excel (A, B, ..., Z, AA, AB, ...) a índice numérico (0,1,...)
     public static int columnLetterToIndex(String letter) {
-        if (letter == null || letter.isBlank()) return 0;
+        if (letter == null || letter.isBlank()) return -1;
         letter = letter.toUpperCase();
         int index = 0;
         for (int i = 0; i < letter.length(); i++) {

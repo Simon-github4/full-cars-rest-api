@@ -31,6 +31,10 @@ public class ProviderMapping {
 	private String nameColumn;
 	private String brandColumn;
 	private String priceColumn;
+	
+	private String provCodColumn;
+	private String qualityColumn;
+	private String categoryColumn;
 
 	private LocalDateTime lastUpdate;
     
