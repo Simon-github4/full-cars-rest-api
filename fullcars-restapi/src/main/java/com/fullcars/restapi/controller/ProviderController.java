@@ -80,8 +80,14 @@ public class ProviderController {
 	}
 
 	@PostMapping("/from-provider")
-    public ResponseEntity<CarPart> createOrGetFromProvider(@RequestBody ProviderPartDTO providerPart) throws ServerException {
-        CarPart carPart = providerPartService.findOrCreateFromProvider(providerPart);
+    public ResponseEntity<?> createOrGetFromProvider(@RequestBody ProviderPartDTO providerPart){
+        CarPart carPart;
+		try {
+			carPart = providerPartService.findOrCreateFromProvider(providerPart);
+		} catch (ServerException e) {
+			e.printStackTrace();
+            return ResponseEntity.status(500).body("Error al procesar archivo: " + e.getMessage());
+		}
         return ResponseEntity.ok(carPart);
     }
 	

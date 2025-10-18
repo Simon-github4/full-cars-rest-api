@@ -52,8 +52,8 @@ private ICarPartRepository carPartRepo;
 			c.setStock(0L);//por las dudas 
 			CarPart saved = carPartRepo.save(c);
 			saved.setSku(generateSku(saved));
-			carPartRepo.save(saved);
-			return saved;
+			
+			return carPartRepo.save(saved);
 		} 
 	}
 
@@ -103,6 +103,6 @@ private ICarPartRepository carPartRepo;
     }
 
 	public Optional<CarPart> findByProviderCodeAndProviderId(String provCod, Long providerId, String name) {
-		return carPartRepo.findByProviderCodeAndProviderIdAndName(provCod, providerId, name);
+		return carPartRepo.findByProviderCodeAndProviderIdAnname(provCod, providerId, name);
 	}
 }

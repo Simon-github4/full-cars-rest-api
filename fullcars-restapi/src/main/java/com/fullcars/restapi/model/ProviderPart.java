@@ -37,6 +37,6 @@ public class ProviderPart {
     private BigDecimal precio;
 
 	private String provCod;
-	private String quality;
+	//private String quality;
 	private String category;
 }

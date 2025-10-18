@@ -90,7 +90,7 @@ public class FileMapper {
 			int brandIdx = columnLetterToIndex(mapping.getBrandColumn());
 			int priceIdx = columnLetterToIndex(mapping.getPriceColumn());
 			int catIdx = columnLetterToIndex(mapping.getCategoryColumn());
-			int qualIdx = columnLetterToIndex(mapping.getQualityColumn());
+			//int qualIdx = columnLetterToIndex(mapping.getQualityColumn());
 			int provCodIdx = columnLetterToIndex(mapping.getProvCodColumn());
 
 			boolean primeraLinea = true;
@@ -111,7 +111,7 @@ public class FileMapper {
 					parte.setMarca(brand);
 					parte.setPrecio(getCellValueAsBigDecimal(row.getCell(priceIdx)));
 					parte.setCategory(getCellValueAsString(row.getCell(catIdx)));
-					parte.setQuality(getCellValueAsString(row.getCell(qualIdx)));
+					//parte.setQuality(getCellValueAsString(row.getCell(qualIdx)));
 					parte.setProvCod(getCellValueAsString(row.getCell(provCodIdx)));
 					
 					batch.add(parte);
@@ -130,51 +130,65 @@ public class FileMapper {
 	    }
 	}
 	
-	private void mapCSV(File tempFile, ProviderMapping mapping,
-                           Consumer<List<ProviderPart>> batchConsumer) throws IOException {
-    List<ProviderPart> batch = new ArrayList<>(batchSize);
+	private void mapCSV(File tempFile, ProviderMapping mapping, Consumer<List<ProviderPart>> batchConsumer)throws IOException {
+	    List<ProviderPart> batch = new ArrayList<>(batchSize);
 
-	int nameIdx = columnLetterToIndex(mapping.getNameColumn());
-	int brandIdx = columnLetterToIndex(mapping.getBrandColumn());
-	int priceIdx = columnLetterToIndex(mapping.getPriceColumn());
-	int catIdx = columnLetterToIndex(mapping.getCategoryColumn());
-	int qualIdx = columnLetterToIndex(mapping.getQualityColumn());
-	int provCodIdx = columnLetterToIndex(mapping.getProvCodColumn());
-	
-    try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(tempFile), StandardCharsets.UTF_8))) {
-        String line;
-        boolean primeraLinea = true;
+	    int nameIdx = columnLetterToIndex(mapping.getNameColumn());
+	    int brandIdx = columnLetterToIndex(mapping.getBrandColumn());
+	    int priceIdx = columnLetterToIndex(mapping.getPriceColumn());
+	    int catIdx = columnLetterToIndex(mapping.getCategoryColumn());
+	    //int qualIdx = columnLetterToIndex(mapping.getQualityColumn());
+	    int provCodIdx = columnLetterToIndex(mapping.getProvCodColumn());
 
-        while ((line = br.readLine()) != null) {
-            if (primeraLinea) { primeraLinea = false; continue; }
-            if (line.isBlank()) continue;
+	    try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(tempFile), StandardCharsets.UTF_8))) {
 
-            String[] columnas = line.split(";|,");
-            if (columnas.length <= Math.max(nameIdx, Math.max(brandIdx, priceIdx))) continue;
+	        String line;
+	        int lineNumber = 0;
 
-            ProviderPart parte = new ProviderPart();
-            parte.setProviderMapping(mapping);
-            parte.setNombre(columnas[nameIdx].trim());
-            parte.setMarca(columnas[brandIdx].trim());
-            parte.setPrecio(new BigDecimal(columnas[priceIdx].trim()));
-            parte.setCategory(columnas[catIdx].trim());
-			parte.setQuality(columnas[qualIdx].trim());
-			parte.setProvCod(columnas[provCodIdx].trim());
-			
-            batch.add(parte);
+	        while ((line = br.readLine()) != null) {
+	            lineNumber++;
+	            if (line.isBlank()) continue;
 
-            if (batch.size() >= batchSize) {
-                batchConsumer.accept(new ArrayList<>(batch)); // pasa copia
-                batch.clear();
-            }
-        }
+	            String[] columnas = line.split(";|,");
+	            if (columnas.length <= Math.max(nameIdx, Math.max(brandIdx, priceIdx))) continue;
 
-        if (!batch.isEmpty()) {
-            batchConsumer.accept(new ArrayList<>(batch));
-            batch.clear();
-        }
-    }
-}
+	            // Validar que la columna precio sea numérica
+	            String precioStr = columnas[priceIdx].trim().replace(",", "."); // por si viene con coma
+	            if (!precioStr.matches("-?\\d+(\\.\\d+)?")) {
+	                System.out.println("⚠ Línea " + lineNumber + " ignorada (precio no numérico): " + precioStr);
+	                continue; // saltar encabezados u otras líneas no válidas
+	            }
+
+	            try {
+	                ProviderPart parte = new ProviderPart();
+	                parte.setProviderMapping(mapping);
+	                parte.setNombre(getSafe(columnas, nameIdx));
+	                parte.setMarca(getSafe(columnas, brandIdx));
+	                parte.setPrecio(new BigDecimal(precioStr));
+	                parte.setCategory(getSafe(columnas, catIdx));
+	                //parte.setQuality(getSafe(columnas, qualIdx));
+	                parte.setProvCod(getSafe(columnas, provCodIdx));
+
+	                batch.add(parte);
+	            } catch (Exception e) {
+	                System.err.println("⚠ Error procesando línea " + lineNumber + ": " + e.getMessage());
+	            }
+
+	            if (batch.size() >= batchSize) {
+	                batchConsumer.accept(new ArrayList<>(batch)); // pasa copia
+	                batch.clear();
+	            }
+	        }
+
+	        if (!batch.isEmpty()) {
+	            batchConsumer.accept(new ArrayList<>(batch));
+	        }
+	    }
+	}
+
+	private static String getSafe(String[] arr, int idx) {
+	    return (idx >= 0 && idx < arr.length) ? arr[idx] : "";
+	}
 
 
     // ------------------------------------------------------

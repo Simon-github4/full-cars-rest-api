@@ -34,7 +34,6 @@ public class ProviderPartService {
                 providerPart.providerId(),
                 providerPart.nombre()
         );
-        
         if (existing.isPresent()) 
             return existing.get();
         
@@ -49,7 +48,7 @@ public class ProviderPartService {
         newCarPart.setProviderSku(providerPart.provCod());
         newCarPart.setProvider(providerService.findByIdOrThrow(providerPart.providerId()));
         newCarPart.setBasePrice(providerPart.precio());
-        newCarPart.setQuality(providerPart.quality());
+        //newCarPart.setQuality(providerPart.quality());
         newCarPart.setStock(0L); // new parts start with no stock
 
         return carPartService.save(newCarPart);

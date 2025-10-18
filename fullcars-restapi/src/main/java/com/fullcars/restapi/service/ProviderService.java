@@ -76,7 +76,7 @@ public class ProviderService {
 	    existingMapping.setBrandColumn(mapping.getBrandColumn());
 	    existingMapping.setPriceColumn(mapping.getPriceColumn());
 	    existingMapping.setCategoryColumn(mapping.getCategoryColumn());
-	    existingMapping.setQualityColumn(mapping.getQualityColumn());
+	    //existingMapping.setQualityColumn(mapping.getQualityColumn());
 	    existingMapping.setProvCodColumn(mapping.getProvCodColumn());
 	    existingMapping.setLastUpdate(LocalDateTime.now());
 	    ProviderMapping savedMapping = mappingRepo.save(existingMapping);

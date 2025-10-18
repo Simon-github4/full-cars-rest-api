@@ -36,7 +36,7 @@ public interface ICarPartRepository extends JpaRepository<CarPart, Long>{
 			SELECT c FROM CarPart c
 			WHERE LOWER(c.providerSku) = LOWER(:providerCode) AND c.provider.id = :providerId AND LOWER(c.name) = LOWER(:name)
 			""")
-	Optional<CarPart> findByProviderCodeAndProviderIdAndName(
+	Optional<CarPart> findByProviderCodeAndProviderIdAnname(
 			@Param("providerCode") String providerCode,
 			@Param("providerId") Long providerId,
 			@Param("name") String name);

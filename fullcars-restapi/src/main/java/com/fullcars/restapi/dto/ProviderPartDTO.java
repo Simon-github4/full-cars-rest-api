@@ -9,7 +9,7 @@ public record ProviderPartDTO(
         BigDecimal precio,
         Long providerId,
         String provCod,
-        String quality,
+        //String quality,
         String category
 ) {
 
@@ -21,7 +21,7 @@ public record ProviderPartDTO(
                 part.getPrecio(),
                 part.getProviderMapping().getProviderId(),
                 part.getProvCod(),
-                part.getQuality(),
+                //part.getQuality(),
                 part.getCategory() 
         );
     }
@@ -33,7 +33,7 @@ public record ProviderPartDTO(
         part.setMarca(marca);
         part.setPrecio(precio);
         part.setProvCod(provCod);
-        part.setQuality(quality);
+        //part.setQuality(quality);
         // Provider and Category can be set later by service logic
         return part;
     }
