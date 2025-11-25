@@ -16,15 +16,15 @@ public class FacturaService {
 
 	private final IFacturaRepository repo;
 	private final SaleService saleService;
-    private final FacturaClientFactory facturaClientFactory;
 
-	public FacturaService(IFacturaRepository repo, SaleService saleService, FacturaClientFactory facturaClientFactory) {
+	public FacturaService(IFacturaRepository repo, SaleService saleService) {
 		this.repo = repo;
 		this.saleService = saleService;
-        this.facturaClientFactory = facturaClientFactory;
 	}
 	
-	public FacturaResponse emitirFactura(Long saleId, TiposComprobante tipoC) {
+	/*
+	 public FacturaResponse emitirFactura(Long saleId, TiposComprobante tipoC) {
+	 
         Sale sale = saleService.findByIdOrThrow(saleId);
 
         // Selección del cliente según tipo de comprobante
@@ -32,14 +32,15 @@ public class FacturaService {
 
         FacturaResponse response = client.solicitarCAE(sale);
 
-        /* crear FACT
+        crear FACT
         sale.setCae(response.getCae());
         sale.setCaeVencimiento(response.getVencimiento());
         saleRepository.save(sale);
-        sale.setFactura();*/
+       sale.setFactura();
 
-        return response;
+       return response;
     }
+*/
 	
 	@Transactional
 	@EventListener

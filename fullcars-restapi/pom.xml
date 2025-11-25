@@ -28,9 +28,15 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
+        <bouncycastle.version>1.76</bouncycastle.version>
+        <httpclient.version>4.5.14</httpclient.version>
+        <dom4j.version>2.1.4</dom4j.version>
+        <jaxen.version>2.0.0</jaxen.version>
 	</properties>
+	
 	<dependencies>
-	    <dependency>
+	<!-- 	***********  BASICS  ************** 		-->
+	   <dependency>
 	        <groupId>org.springframework.boot</groupId>
 	        <artifactId>spring-boot-starter-data-jpa</artifactId>
 	    </dependency>
@@ -42,34 +48,36 @@
 	        <groupId>org.springframework.boot</groupId>
 	        <artifactId>spring-boot-starter-web</artifactId>
 	    </dependency>
-	
 	    <dependency>
 	        <groupId>org.postgresql</groupId>
 	        <artifactId>postgresql</artifactId>
 	        <scope>runtime</scope>
 	    </dependency>
-	
 	    <dependency>
 	        <groupId>org.projectlombok</groupId>
 	        <artifactId>lombok</artifactId>
 	        <optional>true</optional>
 	    </dependency>
-	
 	    <dependency>
 	        <groupId>org.springframework.boot</groupId>
 	        <artifactId>spring-boot-starter-test</artifactId>
 	        <scope>test</scope>
 	    </dependency>
-	
 	    <dependency>
 	        <groupId>org.springdoc</groupId>
 	        <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 	        <version>2.7.0-RC1</version>
 	    </dependency>
-	    <dependency>
-    		<groupId>org.springframework.boot</groupId>
-    		<artifactId>spring-boot-starter-mail</artifactId>
+	  	<dependency>
+	    		<groupId>org.springframework.boot</groupId>
+	    		<artifactId>spring-boot-starter-mail</artifactId>
 		</dependency>
+		<!--      ___________REPORTS_________________  
+		<dependency>
+		    <groupId>net.sf.jasperreports</groupId>
+		    <artifactId>jasperreports</artifactId>
+		    <version>6.20.0</version> 
+    		</dependency> -->
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml</artifactId>
@@ -95,6 +103,53 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- __________BouncyCastle (criptografía) _______________-->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <version>${bouncycastle.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpkix-jdk18on</artifactId>
+            <version>${bouncycastle.version}</version>
+        </dependency>
+        
+        <!-- XML Processing con exclusiones -->
+		<dependency>
+			<groupId>org.dom4j</groupId>
+			<artifactId>dom4j</artifactId>
+			<version>${dom4j.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>xml-apis</groupId>
+					<artifactId>xml-apis</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+		<dependency>
+			<groupId>net.sf.jasperreports</groupId>
+			<artifactId>jasperreports</artifactId>
+			<version>6.20.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>xml-apis</groupId>
+					<artifactId>xml-apis</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+        <dependency>
+            <groupId>jaxen</groupId>
+            <artifactId>jaxen</artifactId>
+            <version>${jaxen.version}</version>
+        </dependency>
+		<!-- HTTP Client -->
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>${httpclient.version}</version>
+        </dependency>
 	</dependencies>
 
 	<build>

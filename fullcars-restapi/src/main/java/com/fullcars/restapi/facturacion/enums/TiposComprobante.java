@@ -1,4 +1,4 @@
-package com.fullcars.restapi.facturacion;
+package com.fullcars.restapi.facturacion.enums;
 
 public enum TiposComprobante {
     FACTURA_A(1), FACTURA_B(6), FACTURA_C(11);
@@ -9,7 +9,7 @@ public enum TiposComprobante {
         this.codigo = codigo;
     }
 
-    public int codigo() {
+    public int getCodigo() {
         return codigo;
     }
 }
