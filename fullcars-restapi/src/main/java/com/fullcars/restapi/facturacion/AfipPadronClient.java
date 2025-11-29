@@ -9,6 +9,7 @@ import java.net.http.HttpResponse;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -19,9 +20,6 @@ import com.fullcars.restapi.facturacion.enums.CondicionIva;
 
 public class AfipPadronClient {
 
-	//private static final String ENDPOINT_URL = "https://aws.afip.gov.ar/sr-padron/webservices/personaServiceA5";
-	private static final String ENDPOINT_URL = "https://aws.afip.gov.ar/sr-padron/webservices/personaServiceA5";
-
 	public static void main(String[] args) {
 		try {
 			// 1. Datos de prueba (Debes obtenerlos del WSAA previamente)
@@ -31,7 +29,7 @@ public class AfipPadronClient {
 			long idPersona = 33693450239L; // El CUIT del cliente a consultar
 
 			// 2. Llamada al servicio
-			ContribuyenteData cliente = getPersonaV2(token, sign, cuitRepresentada, idPersona);
+			ContribuyenteData cliente = getPersonaV2(token, sign, cuitRepresentada, idPersona, "https://awshomo.afip.gov.ar/sr-padron/webservices/personaServiceA5");
 
 			// 3. Imprimir resultados (Listos para tu PDF)
 			System.out.println("--- Datos para el PDF ---");
@@ -47,7 +45,7 @@ public class AfipPadronClient {
 	}
 
 	//Consulta los datos de una persona en el Padrón A5 [cite: 1678]
-	public static ContribuyenteData getPersonaV2(String token, String sign, long cuitRepresentada, long idPersona)
+	public static ContribuyenteData getPersonaV2(String token, String sign, long cuitRepresentada, long idPersona, String endpoint)
 			throws Exception {
 
 		String soapXml = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" "
@@ -58,7 +56,7 @@ public class AfipPadronClient {
 				+ "   </soapenv:Body>" + "</soapenv:Envelope>";
 
 		HttpClient client = HttpClient.newHttpClient();
-		HttpRequest request = HttpRequest.newBuilder().uri(URI.create(ENDPOINT_URL))
+		HttpRequest request = HttpRequest.newBuilder().uri(URI.create(endpoint))
 				.header("Content-Type", "text/xml; charset=utf-8").header("SOAPAction", "") // Action vacío suele funcionar en AFIP
 				.POST(HttpRequest.BodyPublishers.ofString(soapXml)).build();
 

@@ -16,7 +16,6 @@ import org.xml.sax.InputSource;
 
 public class AfipDummyClient {
 
-	// URL DE PRODUCCIÓN (Facturación Electrónica)
 	// Para Testing usar: "https://wswhomo.afip.gov.ar/wsfev1/service.asmx"
 	private static final String ENDPOINT_PROD = "https://servicios1.afip.gov.ar/wsfev1/service.asmx";
 

@@ -8,9 +8,9 @@ import com.fullcars.restapi.dto.DatosFacturacion;
 public class WSFEV1Consultas extends WSFEV1Client {
 
 	// Llama al método 'FECompUltimoAutorizado'
-	public long consultarUltimoComprobanteFEV1(AfipAuth auth, DatosFacturacion datos) throws Exception {
+	public long consultarUltimoComprobanteFEV1(AfipAuth auth, DatosFacturacion datos, String endpoint, String service) throws Exception {
 		String soapRequest = buildConsultaUltimoRequestFEV1(auth, datos);
-		String soapResponse = invokeWS(soapRequest, "FECompUltimoAutorizado");
+		String soapResponse = invokeWS(soapRequest, "FECompUltimoAutorizado", endpoint, service);
 
 		Document doc = parseXml(soapResponse);
 

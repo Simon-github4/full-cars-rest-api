@@ -88,21 +88,17 @@
 			<artifactId>poi</artifactId>
 			<version>4.1.2</version>
 		</dependency>
-		<dependency>
-			<groupId>com.monitorjbl</groupId>
-			<artifactId>xlsx-streamer</artifactId>
-			<version>2.2.0</version>
-			<exclusions>
-				<exclusion>
-					<groupId>org.apache.poi</groupId>
-					<artifactId>poi-ooxml</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.apache.poi</groupId>
-					<artifactId>poi</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
+		<!---->
+			<dependency>
+			    <groupId>com.monitorjbl</groupId>
+			    <artifactId>xlsx-streamer</artifactId>
+			    <version>2.2.0</version> <exclusions>
+			        <exclusion>
+			            <groupId>xml-apis</groupId>
+			            <artifactId>xml-apis</artifactId>
+			        </exclusion>
+			    </exclusions>
+			</dependency>
 		<!-- __________BouncyCastle (criptografía) _______________-->
         <dependency>
             <groupId>org.bouncycastle</groupId>
@@ -120,24 +116,12 @@
 			<groupId>org.dom4j</groupId>
 			<artifactId>dom4j</artifactId>
 			<version>${dom4j.version}</version>
-			<exclusions>
-				<exclusion>
-					<groupId>xml-apis</groupId>
-					<artifactId>xml-apis</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 
 		<dependency>
 			<groupId>net.sf.jasperreports</groupId>
 			<artifactId>jasperreports</artifactId>
 			<version>6.20.0</version>
-			<exclusions>
-				<exclusion>
-					<groupId>xml-apis</groupId>
-					<artifactId>xml-apis</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
         <dependency>
             <groupId>jaxen</groupId>

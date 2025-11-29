@@ -2,7 +2,6 @@ package com.fullcars.restapi.facturacion;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -19,11 +18,14 @@ import java.util.UUID;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.apache.http.HttpResponse; 
+
 import org.bouncycastle.cert.jcajce.JcaCertStore;
 import org.bouncycastle.cms.CMSProcessableByteArray;
 import org.bouncycastle.cms.CMSSignedDataGenerator;
@@ -34,7 +36,6 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
-import org.springframework.http.HttpEntity;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
@@ -45,22 +46,14 @@ public class WSAAClient {
 
 	private static final String RESPONSES_PATH = "C:\\SoftwareFullCars\\XMLresponses\\";
 
-	public static AfipAuth authenticate(Servicios servicio) throws Exception {
-		Properties config = new Properties();
-		config.load(WSAAClient.class.getClassLoader().getResourceAsStream("wsaa_client.properties"));
-
-		String service = servicio.nombre();
-		String endpoint = config.getProperty("endpoint");
-		String crtFile = config.getProperty("crtFile");
-		String keyFile = config.getProperty("keyFile");
-		Long ticketTime = Long.parseLong(config.getProperty("TicketTime", "3600000"));
-
-		String dstDN = config.getProperty("dstdn");// omitido en xml
+	public static AfipAuth authenticate(Servicios servicio, String endpoint, String crtFile, String keyFile, Long ticketTime) throws Exception{// = Long.parseLong(config.getProperty("TicketTime", "3600000"));) 
+		//String dstDN = config.getProperty("dstdn"); omitido en xml
 		// String keyPassword = config.getProperty("keyPassword");
 
+		String service = servicio.nombre();
 		System.out.println("Endpoint: " + endpoint + "\nService: " + service);
 
-		byte[] cmsData = createCMSFromSeparateFiles(crtFile, keyFile, dstDN, service, ticketTime);
+		byte[] cmsData = createCMSFromSeparateFiles(crtFile, keyFile, service, ticketTime);
 		System.out.println("CMS generado: " + cmsData.length + " bytes");
 
 		String response = invokeWSAA(cmsData, endpoint);
@@ -72,7 +65,7 @@ public class WSAAClient {
 		return processResponse(response);
 	}
 
-	private static byte[] createCMSFromSeparateFiles(String crtFile, String keyFile, String dstDN, String service,
+	private static byte[] createCMSFromSeparateFiles(String crtFile, String keyFile, String service,
 			Long ticketTime) throws Exception {
 
 		Security.addProvider(new BouncyCastleProvider());
@@ -98,7 +91,7 @@ public class WSAAClient {
 
 		generator.addSignerInfoGenerator(signerInfo);
 
-		String xmlContent = createLoginTicketRequest(certificate.getSubjectDN().toString(), dstDN, service, ticketTime);
+		String xmlContent = createLoginTicketRequest(certificate.getSubjectDN().toString(), service, ticketTime);
 		System.err.print("XML request generado: ");
 		System.out.println(xmlContent);
 
@@ -135,7 +128,7 @@ public class WSAAClient {
 		return keyFactory.generatePrivate(keySpec);
 	}
 
-	private static String createLoginTicketRequest(String signerDN, String dstDN, String service, Long ticketTime) {
+	private static String createLoginTicketRequest(String signerDN, String service, Long ticketTime) {
 		long currentTime = System.currentTimeMillis();
 		long expirationTime = currentTime + ticketTime;
 		java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");

@@ -25,7 +25,7 @@ public class WSFEV1Service extends WSFEV1Client implements Factura {
 
 	// Proceso principal para generar un CAE.
 	@Override
-	public CAEResponse generarCAE(AfipAuth auth, Sale sale, DatosFacturacion datos, long ultimoComp) throws Exception {
+	public CAEResponse generarCAE(AfipAuth auth, Sale sale, DatosFacturacion datos, long ultimoComp, String endpoint, String service) throws Exception {
 		long proximoNumero = ultimoComp + 1;
 		System.out.println("Próximo número a autorizar: " + proximoNumero);
 
@@ -33,7 +33,7 @@ public class WSFEV1Service extends WSFEV1Client implements Factura {
 		System.out.println("Enviando solicitud de autorización (WSFEV1)..." + soapRequest); // Descomentar para debug
 																							// pesado
 
-		String soapResponse = invokeWS(soapRequest, "FECAESolicitar");
+		String soapResponse = invokeWS(soapRequest, "FECAESolicitar", endpoint, service);
 		System.out.println("Respuesta recibida." + soapResponse); // Descomentar para debug pesado
 
 		return parseFECAESolicitarResponse(soapResponse, proximoNumero);
