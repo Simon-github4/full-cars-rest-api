@@ -4,8 +4,11 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fullcars.restapi.dto.CAEResponse;
 import com.fullcars.restapi.enums.EventType;
 import com.fullcars.restapi.event.SaleEvent;
+import com.fullcars.restapi.facturacion.enums.Servicios;
+import com.fullcars.restapi.facturacion.enums.TiposComprobante;
 import com.fullcars.restapi.model.Factura;
 import com.fullcars.restapi.model.Sale;
 import com.fullcars.restapi.repository.IFacturaRepository;
@@ -16,31 +19,32 @@ public class FacturaService {
 
 	private final IFacturaRepository repo;
 	private final SaleService saleService;
-
-	public FacturaService(IFacturaRepository repo, SaleService saleService) {
+	private final ArcaTokenCacheService tokenService;
+	private final AfipConfig afipConfig;
+	
+	public FacturaService(IFacturaRepository repo, SaleService saleService, ArcaTokenCacheService tokenService, AfipConfig afipConfig) {
 		this.repo = repo;
 		this.saleService = saleService;
+		this.tokenService = tokenService;
+		this.afipConfig = afipConfig;
 	}
 	
-	/*
-	 public FacturaResponse emitirFactura(Long saleId, TiposComprobante tipoC) {
+	 public CAEResponse emitirFactura(Long saleId, TiposComprobante tipoC) {
 	 
         Sale sale = saleService.findByIdOrThrow(saleId);
 
         // Selección del cliente según tipo de comprobante
-        FacturaClient client = facturaClientFactory.getClient();
+        /*FacturaClient client = facturaClientFactory.getClient();
 
-        FacturaResponse response = client.solicitarCAE(sale);
+        CAEResponse response = client.solicitarCAE(sale);
 
-        crear FACT
         sale.setCae(response.getCae());
         sale.setCaeVencimiento(response.getVencimiento());
         saleRepository.save(sale);
-       sale.setFactura();
-
-       return response;
+        sale.setFactura();
+         */
+       return null;//response
     }
-*/
 	
 	@Transactional
 	@EventListener
@@ -49,9 +53,10 @@ public class FacturaService {
 		Sale sale = e.getEntity();
 		if(e.getEventType().equals(EventType.DELETE))
 			deleteBySaleId(sale.getId());
-		else if(e.getEventType().equals(EventType.INSERT) && sale.getSaleNumber() != null && !sale.getSaleNumber().isBlank())
-			save(sale);
+		//else if(e.getEventType().equals(EventType.INSERT) && sale.getSaleNumber() != null && !sale.getSaleNumber().isBlank())
+			//save(sale);
 	}
+	
 	@Transactional
 	public Factura save(Sale sale) {
 		Factura factura = new Factura();
@@ -80,6 +85,12 @@ public class FacturaService {
 	@Transactional
 	public void deleteBySaleId(Long idSale) {
 		repo.deleteBySaleId(idSale);
+	}
+
+	public String getAfipData() {
+		StringBuilder sb = new StringBuilder();
+		//sb.append("AFIP DATA\n").append(afipConfig.getCuit()).append(afipConfig.getWsfev1Endpoint())
+		return tokenService.getTicket(Servicios.CONSTANCIA_INSCRIPCION).toString();
 	}
 	
 }

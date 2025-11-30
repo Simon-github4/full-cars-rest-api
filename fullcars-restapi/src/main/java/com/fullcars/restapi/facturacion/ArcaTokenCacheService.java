@@ -1,31 +1,54 @@
 package com.fullcars.restapi.facturacion;
 
-import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import com.fullcars.restapi.dto.AfipAuth;
+import com.fullcars.restapi.facturacion.enums.Servicios;
 
 @Service
 public class ArcaTokenCacheService {
 
-    /*private final WsaaClient wsaaClient;
-    private final Map<String, ArcaAuth> cache = new ConcurrentHashMap<>();
+	private final Map<Servicios, AfipAuth> tokenCache = new ConcurrentHashMap<>();
+	
+	@Autowired
+	private AfipConfig afipConfig;
+	
+    public AfipAuth getTicket(Servicios servicio) {
+    	AfipAuth ticket = tokenCache.get(servicio);
 
-    public ArcaTokenCacheService(WsaaClient wsaaClient) {
-        this.wsaaClient = wsaaClient;
+        if (ticket != null && ticket.esValido()) 
+            return ticket;
+
+        // 3. Si no existe o venció, solicitamos uno nuevo (Lento)
+        // Usamos synchronized para evitar que dos hilos pidan token al mismo tiempo
+        synchronized (this) {
+            // Doble chequeo por si otro hilo ya actualizó el token mientras esperábamos
+            ticket = tokenCache.get(servicio);
+            if (ticket != null && ticket.esValido()) 
+                return ticket;
+
+            System.out.println("Solicitando nuevo TAA a AFIP para: " + servicio.nombre());
+            AfipAuth nuevoTicket = solicitarNuevoTicketAfiip(servicio);
+            
+            tokenCache.put(servicio, nuevoTicket);
+            
+            return nuevoTicket;
+        }
     }
 
-    public synchronized ArcaAuth getValidToken(String service) {
-    	ArcaAuth token = cache.get(service);
-
-        if (token != null && token.getExpirationTime().isAfter(LocalDateTime.now())) {
-            return token;
+    private AfipAuth solicitarNuevoTicketAfiip(Servicios servicio) {
+        try {
+            return WSAAClient.authenticate(servicio, afipConfig.getWsaaEndpoint(), afipConfig.getCrtFileUrl(),
+            		afipConfig.getKeyFileUrl(), afipConfig.getTicketTime());
+            
+        } catch (Exception e) {
+            // Es buena práctica lanzar una RuntimeException personalizada para que Spring la maneje
+            throw new RuntimeException("Error fatal obteniendo token para " + servicio.nombre(), e);
         }
-
-        // Expirado o inexistente → pedir nuevo
-        ArcaAuth newToken = wsaaClient.requestToken(service);
-        cache.put(service, newToken);
-        return newToken;
-    }*/
+    }
+    
 }

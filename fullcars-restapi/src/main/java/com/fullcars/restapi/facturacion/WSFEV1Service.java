@@ -54,14 +54,10 @@ public class WSFEV1Service extends WSFEV1Client implements Factura {
 		TiposComprobante tipoComprobante = datos.getTipoComprobante();
 		// Ajusta estos códigos si usás otros (ej. Nota de Crédito A/B)
 		if (tipoComprobante == TiposComprobante.FACTURA_A || tipoComprobante == TiposComprobante.FACTURA_B) {
-			codigoCondicionIvaReceptor = (tipoComprobante == TiposComprobante.FACTURA_A) ? 1L : 5L; // 1=Resp.
-																									// Inscripto,
-																									// 5=Cons. Final
+			codigoCondicionIvaReceptor = (tipoComprobante == TiposComprobante.FACTURA_A) ? 1L : 5L; // 1=Resp.Inscripto,5=Cons. Final
 		} else {
-			// Por defecto, asumimos Consumidor Final para otros comprobantes B (ej. Nota
-			// Credito B)
-			// O Resp. Inscripto para otros comprobantes A. ¡Esta lógica puede necesitar
-			// ajuste según tu caso!
+			// Por defecto, asumimos Consumidor Final para otros comprobantes B (ej. Nota Credito B)
+			// O Resp. Inscripto para otros comprobantes A. ¡Esta lógica puede necesitar ajuste!
 			codigoCondicionIvaReceptor = (datos.getTipoDocumento() == TipoDocumento.CUIT) ? 1L : 5L;
 		}
 

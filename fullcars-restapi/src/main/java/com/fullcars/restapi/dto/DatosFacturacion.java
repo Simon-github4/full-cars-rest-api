@@ -9,35 +9,25 @@ import com.fullcars.restapi.facturacion.enums.TiposComprobante;
  */
 public class DatosFacturacion {
 
-	// Datos del Emisor
-	private long cuitEmisor; // Ej: 20228291820
-	private static final int puntoVenta = 00003;
+	// NOTA: Asumimos una única alícuota para toda la factura,
+	private final IvaAlicuota alicuota = IvaAlicuota.IVA_21;
+	private final Conceptos concepto = Conceptos.PRODUCTOS; 
+	private final int puntoVenta = 00003;
 
-	// Datos del Comprobante
-	private TiposComprobante tipoComprobante; // Ej: 6 (Factura B), 1 (Factura A)
-	private Conceptos concepto; // 1=Productos, 2=Servicios, 3=Productos y Servicios
+	private long cuitEmisor; // Ej: 20228291820
+	private TiposComprobante tipoComprobante; 
 
 	// Datos del Comprador
 	private TipoDocumento tipoDocumento; // Ej: 96 (Cons. Final), 80 (CUIT)
 	private long numeroDocumento; // Ej: 0 (para Cons. Final)
 
-	// Datos de IVA
-	// NOTA: Asumimos una única alícuota para toda la factura,
-	// ya que el modelo Sale/CarPart no tiene este dato por ítem.
-	private IvaAlicuota alicuota;
-
-	// Constructor
-	public DatosFacturacion(long cuitEmisor, TiposComprobante codigoComprobante, Conceptos codigoConcepto,
-			TipoDocumento codigoTipoDocumento, long numeroDocumento, IvaAlicuota alicuota) {
+	public DatosFacturacion(long cuitEmisor, TiposComprobante codigoComprobante, TipoDocumento codigoTipoDocumento, long numeroDocumento) {
 		this.cuitEmisor = cuitEmisor;
 		this.tipoComprobante = codigoComprobante;
-		this.concepto = codigoConcepto;
 		this.tipoDocumento = codigoTipoDocumento;
 		this.numeroDocumento = numeroDocumento;
-		this.alicuota = alicuota;
 	}
 
-	// Getters
 	public long getCuitEmisor() {
 		return cuitEmisor;
 	}

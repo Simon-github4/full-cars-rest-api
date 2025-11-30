@@ -1,8 +1,9 @@
 package com.fullcars.restapi.dto;
 
-
 import java.time.LocalDateTime;
+import lombok.Data;
 
+@Data
 public class AfipAuth {
     private final String token;
     private final String sign;
@@ -14,8 +15,10 @@ public class AfipAuth {
         this.expiration = expiration;
     }
 
-    public String getToken() { return token; }
-    public String getSign() { return sign; }
+    public boolean esValido() {
+        return LocalDateTime.now().isBefore(expiration.minusMinutes(10));
+    }
+    
     public LocalDateTime getExpirationTime() { return expiration; }
 }
 

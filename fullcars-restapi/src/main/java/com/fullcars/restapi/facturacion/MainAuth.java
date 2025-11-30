@@ -21,7 +21,7 @@ public class MainAuth {
 			//AfipDummyClient.checkServerStatus();
 			//AfipAuth auth = WSAAClient.authenticate(Servicios.CONSTANCIA_INSCRIPCION);
 			
-			System.out.println( AfipPadronClient.getPersonaV2(auth.getToken(), auth.getSign(), CUIT_EMISOR, 23461064639L) );
+			System.out.println( AfipPadronClient.getPersonaV2(auth.getToken(), auth.getSign(), CUIT_EMISOR, 23461064639L, "https://aws.afip.gov.ar/sr-padron/webservices/personaServiceA5") );
 			//generarCAE();
 
 			// System.out.println("Token: " + auth.getToken());
@@ -40,17 +40,15 @@ public class MainAuth {
 			"EAP+42oKHlkmiQZl2x0mTt0iFebfflHskUvSMlO5tyb8HGnk+6RinfZN2GFssWXYxQtpXNQ7INBQwLX4jyLT4V4Bw1/2X8Cj8/a8WRy9Cyq0pIRB4feeQPgBz471dGMlnkeiiRb4jIAa3Dmt9sFxqX7yts3Lg2wjbYFnYDBS8Og=",
 			java.time.LocalDateTime.now().plusHours(12)
 	);
-	
+	/*
 	public static void generarCAE() {
 		Sale sale = getTestSale();
 
 		DatosFacturacion datos = new DatosFacturacion(
 				CUIT_EMISOR, 
-				TiposComprobante.FACTURA_B,		// Código Comprobante (6 = Factura B)
-				Conceptos.PRODUCTOS, 			// Código Concepto (1 = Productos)
-				TipoDocumento.CONSUMIDOR_FINAL, // Código Doc (96 = Consumidor Final)
-				0, 								// Número Doc (0 para Cons. Final)
-				IvaAlicuota.IVA_21 				// Alícuota de IVA para toda la factura
+				TiposComprobante.FACTURA_B,		
+				TipoDocumento.CONSUMIDOR_FINAL, 
+				0 								// Número Doc (0 para Cons. Final)
 		);
 
 		WSFEV1Service servicioAFIP = new WSFEV1Service();
@@ -65,14 +63,14 @@ public class MainAuth {
 			 * if (respuesta.getError() == null) {
 			 * System.out.println("¡CAE generado con éxito!"); // Aquí guardas
 			 * respuesta.getCae() y respuesta.getNumeroComprobante() en tu BBDD }
-			 */
+			 
 
 		} catch (Exception e) {
 			System.err.println("Falló la generación de CAE:");
 			e.printStackTrace();
 		}
 	}
-
+*/
 	private static Sale getTestSale() {
 		Sale sale = new Sale(); // Asumimos que llenas esto con 'date' y 'details'
 		sale.setId(1L);

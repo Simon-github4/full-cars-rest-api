@@ -2,7 +2,7 @@ package com.fullcars.restapi.dto;
 
 import com.fullcars.restapi.facturacion.enums.CondicionIva;
 
-public class ContribuyenteData {
+public class ContribuyenteData {//PRINCIPALMENTE PARA ARMAR PDF
     private String nombre;
     private String direccion;
     private String localidad;
