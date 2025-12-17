@@ -25,7 +25,7 @@ public abstract class WSFEV1Client {
 	//protected static final String WSFEV1_SERVICE_URL = "http://ar.gov.afip.dif.FEV1/";
 
 	// Método helper para enviar la solicitud SOAP (CON SOAPAction)
-	protected String invokeWS(String soapRequest, String methodName, String endpoint, String service) throws Exception {
+	protected static String invokeWS(String soapRequest, String methodName, String endpoint, String service) throws Exception {
 		CloseableHttpClient httpClient = HttpClients.createDefault();
 		HttpPost httpPost = new HttpPost(endpoint); // Apunta al endpoint de WSFEV1
 
@@ -50,7 +50,7 @@ public abstract class WSFEV1Client {
 	}
 
 	// Helper para parsear XML
-	protected Document parseXml(String xml) throws Exception {
+	protected static Document parseXml(String xml) throws Exception {
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		// WSFEV1 no usa namespaces en la respuesta, así que lo simplificamos
 		dbf.setNamespaceAware(false);
@@ -59,7 +59,7 @@ public abstract class WSFEV1Client {
 	}
 
 	// Helper para obtener el valor de un tag (simplificado, sin namespaces)
-	protected String getTagValue(Node node, String tagName) {
+	protected static String getTagValue(Node node, String tagName) {
 		if (node == null)
 			return null;
 
@@ -81,7 +81,7 @@ public abstract class WSFEV1Client {
 		return null;
 	}
 
-	protected String buildEnvelope(String bodyContent) {
+	protected static String buildEnvelope(String bodyContent) {
 		return "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" "
 				+ "xmlns:ar=\"http://ar.gov.afip.dif.FEV1/\">" + "<soapenv:Header/>" + "<soapenv:Body>" + bodyContent
 				+ "</soapenv:Body>" + "</soapenv:Envelope>";

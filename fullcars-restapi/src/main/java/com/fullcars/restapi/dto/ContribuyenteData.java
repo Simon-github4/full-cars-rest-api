@@ -64,4 +64,34 @@ public class ContribuyenteData {//PRINCIPALMENTE PARA ARMAR PDF
                 + ", provincia=" + provincia + ", codigoPostal=" + codigoPostal + ", condicionIva=" + condicionIva.getDescripcion()
                 + "]";
     }
+    
+    public String getDomicilioComercialFormateado() {
+        StringBuilder sb = new StringBuilder();
+
+        // 1. Dirección (Calle y altura)
+        if (this.direccion != null && !this.direccion.trim().isEmpty()) {
+            sb.append(this.direccion);
+        }
+
+        // 2. Localidad (Generalmente separada por un guion)
+        if (this.localidad != null && !this.localidad.trim().isEmpty()) {
+            if (sb.length() > 0) sb.append(" - ");
+            sb.append(this.localidad);
+        }
+
+        // 3. Provincia (Generalmente separada por coma)
+        if (this.provincia != null && !this.provincia.trim().isEmpty()) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(this.provincia);
+        }
+
+        // 4. Código Postal (Opcional: Si querés que aparezca al final)
+        /* if (this.codigoPostal != null && !this.codigoPostal.trim().isEmpty()) {
+            sb.append(" (CP: ").append(this.codigoPostal).append(")");
+        } 
+        */
+
+        return sb.toString();
+    }
+    
 }

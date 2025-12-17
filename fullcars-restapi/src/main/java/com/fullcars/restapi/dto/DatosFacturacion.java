@@ -15,17 +15,18 @@ public class DatosFacturacion {
 	private final int puntoVenta = 00003;
 
 	private long cuitEmisor; // Ej: 20228291820
+
 	private TiposComprobante tipoComprobante; 
-
 	// Datos del Comprador
-	private TipoDocumento tipoDocumento; // Ej: 96 (Cons. Final), 80 (CUIT)
-	private long numeroDocumento; // Ej: 0 (para Cons. Final)
+	private TipoDocumento tipoDocumento; 
+	private long numeroDocumentoComprador; // Ej: 0 (para Cons. Final)
 
-	public DatosFacturacion(long cuitEmisor, TiposComprobante codigoComprobante, TipoDocumento codigoTipoDocumento, long numeroDocumento) {
+	public DatosFacturacion() {}
+	public DatosFacturacion(long cuitEmisor, TiposComprobante codigoComprobante, long numeroDocumentoComprador) {
 		this.cuitEmisor = cuitEmisor;
 		this.tipoComprobante = codigoComprobante;
-		this.tipoDocumento = codigoTipoDocumento;
-		this.numeroDocumento = numeroDocumento;
+		this.tipoDocumento = (codigoComprobante == TiposComprobante.FACTURA_A) ? TipoDocumento.CUIT : TipoDocumento.CONSUMIDOR_FINAL;
+		this.numeroDocumentoComprador = numeroDocumentoComprador;
 	}
 
 	public long getCuitEmisor() {
@@ -49,7 +50,7 @@ public class DatosFacturacion {
 	}
 
 	public long getNumeroDocumento() {
-		return numeroDocumento;
+		return numeroDocumentoComprador;
 	}
 
 	public IvaAlicuota getAlicuota() {

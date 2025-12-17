@@ -1,6 +1,7 @@
 package com.fullcars.restapi.facturacion;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 import org.w3c.dom.Document;
@@ -21,11 +22,11 @@ import com.fullcars.restapi.model.Sale;
  * servicio (a diferencia de WSMTXCA) requiere SOAPAction y no maneja detalle de
  * ítems en la solicitud, solo totales.
  */
-public class WSFEV1Service extends WSFEV1Client implements Factura {
+public class WSFEV1Service extends WSFEV1Client {//implements Factura {
 
 	// Proceso principal para generar un CAE.
-	@Override
-	public CAEResponse generarCAE(AfipAuth auth, Sale sale, DatosFacturacion datos, long ultimoComp, String endpoint, String service) throws Exception {
+	//@Override
+	public static CAEResponse generarCAE(AfipAuth auth, Sale sale, DatosFacturacion datos, long ultimoComp, String endpoint, String service) throws Exception {
 		long proximoNumero = ultimoComp + 1;
 		System.out.println("Próximo número a autorizar: " + proximoNumero);
 
@@ -40,7 +41,7 @@ public class WSFEV1Service extends WSFEV1Client implements Factura {
 	}
 
 	// Construye el XML principal para 'FECAESolicitar' (WSFEV1)
-	private String buildFECAESolicitarRequest(AfipAuth auth, Sale sale, DatosFacturacion datos,
+	private static String buildFECAESolicitarRequest(AfipAuth auth, Sale sale, DatosFacturacion datos,
 			long numeroComprobante) {
 
 		// --- Cálculos de Totales ---
@@ -48,7 +49,7 @@ public class WSFEV1Service extends WSFEV1Client implements Factura {
 		BigDecimal netoTotal = sale.getTotal(); // Asumimos que sale.getTotal() es el NETO
 		BigDecimal ivaTotal = netoTotal.multiply(alicuota.getMultiplicador()).setScale(2, RoundingMode.HALF_UP);
 		BigDecimal totalComprobante = netoTotal.add(ivaTotal).setScale(2, RoundingMode.HALF_UP);
-		String fecha = sale.getDate().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+		String fecha = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));//sale.getDate().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 
 		long codigoCondicionIvaReceptor;
 		TiposComprobante tipoComprobante = datos.getTipoComprobante();
@@ -61,8 +62,7 @@ public class WSFEV1Service extends WSFEV1Client implements Factura {
 			codigoCondicionIvaReceptor = (datos.getTipoDocumento() == TipoDocumento.CUIT) ? 1L : 5L;
 		}
 
-		// --- Bloque <Iva> (Desglose de alícuotas) ---
-		// WSFEV1 no usa 'arrayIva', sino un tag 'Iva' que contiene 'AlicIva'
+		// --- Bloque <Iva> (Desglose de alícuotas)-- WSFEV1 no usa 'arrayIva', sino un tag 'Iva' que contiene 'AlicIva'
 		String ivaXml = String.format(
 				"<ar:Iva>" + "  <ar:AlicIva>" + "    <ar:Id>%d</ar:Id>" + "    <ar:BaseImp>%s</ar:BaseImp>"
 						+ "    <ar:Importe>%s</ar:Importe>" + "  </ar:AlicIva>" + "</ar:Iva>",
@@ -90,20 +90,17 @@ public class WSFEV1Service extends WSFEV1Client implements Factura {
 				"           </ar:FECAEDetRequest>" + "       </ar:FeDetReq>" + "    </ar:FeCAEReq>"
 				+ "  </ar:FECAESolicitar>" + "</soapenv:Body>" + "</soapenv:Envelope>";
 
-		// Rellenar la plantilla
 		return String.format(soapTemplate, auth.getToken(), auth.getSign(), datos.getCuitEmisor(),
 				datos.getPuntoVenta(), datos.getTipoComprobante().getCodigo(), datos.getConcepto().codigo(),
 				datos.getTipoDocumento().getCodigo(), datos.getNumeroDocumento(), codigoCondicionIvaReceptor,
 				numeroComprobante, // CbteDesde
 				numeroComprobante, // CbteHasta
-				fecha, totalComprobante.toString(), netoTotal.toString(), ivaTotal.toString(), ivaXml // El bloque de
-																										// desglose de
-																										// IVA
+				fecha, totalComprobante.toString(), netoTotal.toString(), ivaTotal.toString(), ivaXml // El bloque de desglose de IVA
 		);
 	}
 
 	// Parsea la respuesta de 'FECAESolicitar'
-	private CAEResponse parseFECAESolicitarResponse(String soapResponse, long numeroComprobanteAsignado)
+	private static CAEResponse parseFECAESolicitarResponse(String soapResponse, long numeroComprobanteAsignado)
 			throws Exception {
 		CAEResponse response = new CAEResponse();
 		Document doc = parseXml(soapResponse);

@@ -8,7 +8,7 @@ import com.fullcars.restapi.dto.DatosFacturacion;
 public class WSFEV1Consultas extends WSFEV1Client {
 
 	// Llama al método 'FECompUltimoAutorizado'
-	public long consultarUltimoComprobanteFEV1(AfipAuth auth, DatosFacturacion datos, String endpoint, String service) throws Exception {
+	public static long consultarUltimoComprobanteFEV1(AfipAuth auth, DatosFacturacion datos, String endpoint, String service) throws Exception {
 		String soapRequest = buildConsultaUltimoRequestFEV1(auth, datos);
 		String soapResponse = invokeWS(soapRequest, "FECompUltimoAutorizado", endpoint, service);
 
@@ -29,7 +29,7 @@ public class WSFEV1Consultas extends WSFEV1Client {
 	}
 
 	// Construye el XML para 'FECompUltimoAutorizado' (WSFEV1)
-	private String buildConsultaUltimoRequestFEV1(AfipAuth auth, DatosFacturacion datos) {
+	private static String buildConsultaUltimoRequestFEV1(AfipAuth auth, DatosFacturacion datos) {
 		String template = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" "
 				+ "                  xmlns:ar=\"http://ar.gov.afip.dif.FEV1/\">" + "<soapenv:Header/>"
 				+ "<soapenv:Body>" + "  <ar:FECompUltimoAutorizado>" + "    <ar:Auth>"
