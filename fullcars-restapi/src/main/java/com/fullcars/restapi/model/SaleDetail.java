@@ -6,9 +6,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Data
 @NoArgsConstructor
@@ -19,7 +19,8 @@ public class SaleDetail extends BaseDetail{
     @JsonBackReference
 	@ManyToOne(optional = false, fetch = FetchType.EAGER)
     @JoinColumn(name = "sale_id")
-	private Sale sale;
+    @ToString.Exclude  // <--- ¡AGREGA ESTO! Rompe el ciclo hacia arriba
+    private Sale sale;
 
 	//@Override
 	//public String getTableName() {

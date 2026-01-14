@@ -1,7 +1,10 @@
 package com.fullcars.restapi.facturacion;
 
+import java.io.File;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.rmi.ServerException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -16,6 +19,7 @@ import com.fullcars.restapi.dto.ContribuyenteData;
 import com.fullcars.restapi.dto.DatosFacturacion;
 import com.fullcars.restapi.event.SaleEvent;
 import com.fullcars.restapi.facturacion.enums.Conceptos;
+import com.fullcars.restapi.facturacion.enums.CondicionIva;
 import com.fullcars.restapi.facturacion.enums.Servicios;
 import com.fullcars.restapi.facturacion.enums.TiposComprobante;
 import com.fullcars.restapi.model.Factura;
@@ -39,43 +43,46 @@ public class FacturaService {
 		this.afipConfig = afipConfig;
 	}
 	
-	public CAEResponse emitirCae(Sale sale, DatosFacturacion datosFact) throws Exception {
-		AfipAuth auth = tokenService.getTicket(Servicios.FACTURACION_ELECTRONICA);
-        long ultimoComp = WSFEV1Consultas.consultarUltimoComprobanteFEV1(
-        		auth,
-        		datosFact, 
-        		afipConfig.getWsfev1Endpoint(),
-        		afipConfig.getWsfev1ServiceUrl());
-        
-       return WSFEV1Service.generarCAE(
-        		auth,
-        		sale,
-        		datosFact,
-        		ultimoComp,
-        		afipConfig.getWsfev1Endpoint(),
-        		afipConfig.getWsfev1ServiceUrl());
-    }
-	
-	public byte[] generarFactura(Long saleId, TiposComprobante tiposComprobante, Long idReceptor) throws Exception {
+	public byte[] generarFactura(Long saleId, TiposComprobante tiposComprobante) throws Exception {
 		Sale sale = saleService.findByIdOrThrow(saleId);
 		
-		idReceptor = Long.parseLong(sale.getCustomer().getCuit());
+		System.out.println(sale);
+		if(sale.getFactura() != null)
+			throw new RuntimeException("La venta ya posee una factura electrónica asociada.");
 		
-		DatosFacturacion datosFact = new DatosFacturacion(afipConfig.getCuit(), tiposComprobante, idReceptor);
-		ContribuyenteData receptor = consultarContribuyente(tokenService.getTicket(Servicios.CONSTANCIA_INSCRIPCION), idReceptor);
+		DatosFacturacion datosFact = new DatosFacturacion(afipConfig.getCuit(), tiposComprobante, Long.parseLong(sale.getCustomer().getCuit()));
+		ContribuyenteData receptor = null;
+		if(datosFact.getTipoComprobante() == TiposComprobante.FACTURA_A)
+			receptor = consultarContribuyente(tokenService.getTicket(Servicios.CONSTANCIA_INSCRIPCION), datosFact.getNumeroDocumento());
+		else {
+			//por AHORA SOLO PUEDE SER tipo B
+			receptor = ContribuyenteData.builder()
+				.nombre("CONSUMIDOR FINAL")
+		        .direccion("S/D") // Sin Dirección o un guion "-"
+		        .localidad("")
+		        .provincia("")
+		        .codigoPostal("")
+		        .condicionIva(CondicionIva.CONSUMIDOR_FINAL)
+		        .build();
+		}
 		CAEResponse response = emitirCae(sale, datosFact);
-
+		//response.setCae("1234567");response.setFechaVencimiento("22221111");response.setNumeroComprobante(1L);response.setObservaciones("obs");
+		
         Factura fact = mapearFactura(sale, datosFact, receptor, response);
 		
         if (response != null && response.getCae() != null) {	
             try {
             	Factura saved = save(fact);
-	        	byte[] pdfBytes = FacturaPDFGenerator.generarFacturaPDF(fact, datosFact.getAlicuota());
+
+            	sale.setFactura(saved);
+            	saleService.update(sale);
+
+            	byte[] pdfBytes = FacturaPDFGenerator.generarFacturaPDF(fact, datosFact.getAlicuota());
 	
 	            String pathGuardado = guardarPdfEnDisco(pdfBytes, generarNombreArchivo(fact));
 	            saved.setFileUrl(pathGuardado);
 	            save(saved);
-	            
+            	
 				return pdfBytes;
 				
             } catch (Exception e) {
@@ -85,21 +92,25 @@ public class FacturaService {
         }else
 			throw new RuntimeException("No se pudo generar la factura electrónica.");
 	}
-	
-	public ContribuyenteData consultarContribuyente(AfipAuth auth, long idBuscado) throws ServerException {
-		try {
-			return AfipPadronClient.getPersonaV2(auth.getToken(), auth.getSign(), afipConfig.getCuit(), idBuscado, afipConfig.getPadronEndpoint());
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new ServerException("Error al consultar el padrón de AFIP");
-		}
+
+	public File getFacturaPdf(Long saleId) throws ServerException {
+			Path filePath = Paths.get(repo.findFilePathBySaleId(saleId));
+			
+			if (filePath == null) 
+		        throw new ServerException("No hay Pdf Factura registrado.");
+
+		    File file = filePath.toFile();
+		    if (!file.exists()) 
+		    	throw new ServerException("El Pdf Factura no existe en el servidor");
+
+			return file;
 	}
 	
 	@Transactional
 	@EventListener
 	public void handleSaleEvent(SaleEvent e) {
 		System.err.println("Facuta Service Received SaleEvent !!!" + e.getSource());
-		Sale sale = e.getEntity();
+		//Sale sale = e.getEntity();
 		//if(e.getEventType().equals(EventType.DELETE))
 		//	deleteBySaleId(sale.getId());
 		//else if(e.getEventType().equals(EventType.INSERT) && sale.getSaleNumber() != null && !sale.getSaleNumber().isBlank())
@@ -127,6 +138,10 @@ public class FacturaService {
 	public void deleteBySaleId(Long idSale) {
 		repo.deleteBySaleId(idSale);
 	}
+
+	public boolean isSaleFacturada(Long idSale) {
+		return repo.findBySaleId(idSale).isPresent();
+	}
 	
 	public String getAfipData() {
 		StringBuilder sb = new StringBuilder();
@@ -134,7 +149,24 @@ public class FacturaService {
 		return tokenService.getTicket(Servicios.CONSTANCIA_INSCRIPCION).toString().concat(afipConfig.getWsfev1Endpoint());
 	}
 
-	public static Factura mapearFactura(Sale sale, DatosFacturacion datos, ContribuyenteData contribuyente,
+	private CAEResponse emitirCae(Sale sale, DatosFacturacion datosFact) throws Exception {
+		AfipAuth auth = tokenService.getTicket(Servicios.FACTURACION_ELECTRONICA);
+        long ultimoComp = WSFEV1Consultas.consultarUltimoComprobanteFEV1(
+        		auth,
+        		datosFact, 
+        		afipConfig.getWsfev1Endpoint(),
+        		afipConfig.getWsfev1ServiceUrl());
+        
+       return WSFEV1Service.generarCAE(
+        		auth,
+        		sale,
+        		datosFact,
+        		ultimoComp,
+        		afipConfig.getWsfev1Endpoint(),
+        		afipConfig.getWsfev1ServiceUrl());
+    }
+	
+	private static Factura mapearFactura(Sale sale, DatosFacturacion datos, ContribuyenteData contribuyente,
 			CAEResponse caeResponse) {
 
 		Factura factura = new Factura();
@@ -201,6 +233,15 @@ public class FacturaService {
 		return factura;
 	}
 	
+	private ContribuyenteData consultarContribuyente(AfipAuth auth, long idBuscado) throws ServerException {
+		try {
+			return AfipPadronClient.getPersonaV2(auth.getToken(), auth.getSign(), afipConfig.getCuit(), idBuscado, afipConfig.getPadronEndpoint());
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new ServerException("Error al consultar el padrón de AFIP");
+		}
+	}
+	
 	// --- Métodos Auxiliares ---
 	private String guardarPdfEnDisco(byte[] contenido, String nombreArchivo) throws Exception {
 	    try {
@@ -230,5 +271,6 @@ public class FacturaService {
 	            fact.getPuntoVenta(), 
 	            fact.getNumeroComprobante());
 	}
+
 	
 }

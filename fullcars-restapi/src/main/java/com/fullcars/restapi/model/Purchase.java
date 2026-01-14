@@ -34,6 +34,7 @@ public class Purchase {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "purchase_id")
     private Long id;
+   
     private LocalDate date;
     private BigDecimal taxes;
     private String observations;
@@ -43,13 +44,12 @@ public class Purchase {
     private String filePath;
     @ManyToOne
     private Provider provider;
-    /*private String companyNameSnapshot;
-    private String cuitSnapshot;
-    private String adressSnapshot;
-	*/
+
     @JsonManagedReference
     @OneToMany(mappedBy = "purchase", fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
     private List<PurchaseDetail> details = new ArrayList<>();
+    
+    private BigDecimal amount;
 
 }
 

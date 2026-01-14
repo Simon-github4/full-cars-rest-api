@@ -4,7 +4,7 @@ public enum CondicionIva {
     RESPONSABLE_INSCRIPTO(30L, "IVA Responsable Inscripto"),
     MONOTRIBUTO(20L, "Responsable Monotributo"),
     IVA_EXENTO(32L, "IVA Sujeto Exento"),
-    CONSUMIDOR_FINAL(98L, "Consumidor Final (DNI/Sin CUIT)"),
+    CONSUMIDOR_FINAL(98L, "Consumidor Final"),// (DNI/Sin CUIT)
     NO_ENCONTRADO(99L, "Sujeto No Categorizado / Error");//para el codigo
 
     private final Long codigo;

@@ -2,6 +2,13 @@ package com.fullcars.restapi.dto;
 
 import com.fullcars.restapi.facturacion.enums.CondicionIva;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class ContribuyenteData {//PRINCIPALMENTE PARA ARMAR PDF
     private String nombre;
     private String direccion;
@@ -10,6 +17,7 @@ public class ContribuyenteData {//PRINCIPALMENTE PARA ARMAR PDF
     private String codigoPostal;
     private CondicionIva condicionIva; 
 
+    
     public String getNombre() {
         return nombre;
     }

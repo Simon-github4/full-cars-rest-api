@@ -114,18 +114,42 @@ public class AfipPadronClient {
 			}
 		}
 
-		// Determinar Condición frente al IVA, Buscamos en la lista de impuestos [cite: 1728, 2016, 2069]
-		NodeList impuestos = doc.getElementsByTagName("impuesto"); // Busca tanto en RegimenGeneral como Monotributo
-		data.setCondicionIva(CondicionIva.CONSUMIDOR_FINAL); //Valor por defecto si no encuentra impuestos relevantes (ej: solo tiene Bienes Personales)
+		NodeList impuestos = doc.getElementsByTagName("impuesto");
+		// 1. Empezamos asumiendo lo más bajo: Consumidor Final
+		data.setCondicionIva(CondicionIva.CONSUMIDOR_FINAL); 
 
+		boolean esResponsableInscripto = false;
+		boolean esMonotributista = false;
+		boolean esExento = false;
+
+		// 2. Recorremos TODOS los impuestos sin hacer break
 		for (int i = 0; i < impuestos.getLength(); i++) {
-			Element imp = (Element) impuestos.item(i);
-			String idImpuesto = getTagValue("idImpuesto", imp);
+		    Element imp = (Element) impuestos.item(i);
+		    String idImpuesto = getTagValue("idImpuesto", imp);
+		    
+		    // Opcional pero recomendado: Verificar que el impuesto no esté dado de baja
+		    String estado = getTagValue("estado", imp); 
+		    if ("BAJA".equals(estado)) continue; 
 
-			if ("30".equals(idImpuesto) || "20".equals(idImpuesto) || "32".equals(idImpuesto)) { 
-				data.setCondicionIva(CondicionIva.fromCodigo(idImpuesto));
-				break;
-			}
+		    if ("30".equals(idImpuesto)) {
+		        esResponsableInscripto = true;
+		    } else if ("20".equals(idImpuesto)) {
+		        esMonotributista = true;
+		    } else if ("32".equals(idImpuesto)) {
+		        esExento = true;
+		    }
+		}
+
+		// 3. Decidimos al final según la jerarquía fiscal
+		if (esResponsableInscripto) {
+		    // El 30 mata a todo lo demás
+		    data.setCondicionIva(CondicionIva.RESPONSABLE_INSCRIPTO);
+		} else if (esMonotributista) {
+		    // Si no es RI, chequeamos Monotributo
+		    data.setCondicionIva(CondicionIva.MONOTRIBUTO);
+		} else if (esExento) {
+		    // Si no es ninguno de los anteriores, chequeamos Exento
+		    data.setCondicionIva(CondicionIva.IVA_EXENTO);
 		}
 
 		return data;

@@ -1,11 +1,9 @@
 package com.fullcars.restapi.facturacion;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,9 +13,6 @@ import java.util.Map;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
-import com.fullcars.restapi.dto.CAEResponse;
-import com.fullcars.restapi.dto.ContribuyenteData;
-import com.fullcars.restapi.dto.DatosFacturacion;
 import com.fullcars.restapi.facturacion.enums.IvaAlicuota;
 import com.fullcars.restapi.facturacion.enums.TiposComprobante;
 import com.fullcars.restapi.model.Factura;
@@ -33,6 +28,10 @@ import net.sf.jasperreports.engine.JasperFillManager;
 import net.sf.jasperreports.engine.JasperPrint;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
 @Service
 public class FacturaPDFGenerator {
 
@@ -42,9 +41,9 @@ public class FacturaPDFGenerator {
 
     public static byte[] generarFacturaPDF(Factura fact, IvaAlicuota iva) throws JRException, IOException {
 
-        // 1. Cargar la plantilla compilada (.jasper) desde resources
-        // Usamos ClassPathResource para que funcione bien dentro del JAR en producción
-    	ClassPathResource resource = new ClassPathResource(REPORT_A);
+    	ClassPathResource resource = (fact.getTipoComprobante() == TiposComprobante.FACTURA_A.getCodigo())?
+    			new ClassPathResource(REPORT_A)
+    			:new ClassPathResource(REPORT_B);
         
         if (!resource.exists()) 
             throw new FileNotFoundException("¡ERROR FATAL! No encuentro el archivo: " + REPORT_A);
@@ -94,13 +93,16 @@ public class FacturaPDFGenerator {
         params.put("RAZON_SOCIAL_CLIENTE", fact.getRazonSocialCliente());
         params.put("DOMICILIO_CLIENTE", fact.getDomicilioCliente());
         params.put("CONDICION_IVA_CLIENTE", fact.getCondicionIvaCliente().getDescripcion());
-        params.put("CONDICION_VENTA", "Cuenta Corriente");
+        params.put("CONDICION_VENTA", (fact.getTipoComprobante() == TiposComprobante.FACTURA_A.getCodigo())?"Cuenta Corriente" : "Contado");
 
         // Totales (Pasan como BigDecimal, Jasper sabe formatearlos como moneda)
         params.put("IMPORTE_NETO", fact.getImpNeto());
         params.put("IVA_21", fact.getImpIva());
         params.put("IMPORTE_TOTAL", fact.getImpTotal());
 
+        System.out.println(generarTextoQR(fact));
+        params.put("QR_CODE_PAYLOAD", generarTextoQR(fact));
+        
         // Parámetro opcional para imágenes (logo) si lo necesitas a futuro
         // params.put("LOGO_DIR", new ClassPathResource("img/logo.png").getPath());
 
@@ -144,6 +146,44 @@ public class FacturaPDFGenerator {
         private String alicuota;        // Ej: "21%" o "10.5%"
         private BigDecimal subtotalConIva;
     }
-    
+
+    public static String generarTextoQR(Factura fact) {
+        try {
+            String urlBase = "https://www.afip.gob.ar/fe/qr/?p=";
+            
+            Map<String, Object> qrData = new HashMap<>();
+            qrData.put("ver", 1);
+            qrData.put("fecha", fact.getFechaEmision().toString()); // Formato yyyy-MM-dd
+            qrData.put("cuit", fact.getCuitEmisor()); // CUIT de TU empresa
+            qrData.put("ptoVta", fact.getPuntoVenta());
+            qrData.put("tipoCmp", fact.getTipoComprobante()); // Integer (ej: 1, 6)
+            qrData.put("nroCmp", fact.getNumeroComprobante());
+            qrData.put("importe", fact.getImpTotal()); // BigDecimal
+            qrData.put("moneda", "PES"); 
+            qrData.put("ctz", 1); 
+            
+            // Datos del Receptor
+            qrData.put("tipoDocRec", fact.getTipoDocCliente()); 
+            qrData.put("nroDocRec", fact.getCuitCliente()); // Cuidado: debe ser número, no String
+            
+            // Datos de Autorización
+            qrData.put("tipoCodAut", "E"); 
+            qrData.put("codAut", Long.parseLong(fact.getCae())); // El CAE numérico
+
+            // 2. Convertir a JSON String
+            ObjectMapper mapper = new ObjectMapper();
+            String jsonString = mapper.writeValueAsString(qrData);
+
+            // 3. Codificar a Base64
+            String base64Encoded = Base64.getEncoder()
+                    .encodeToString(jsonString.getBytes(StandardCharsets.UTF_8));
+
+            // 4. Retornar URL Completa
+            return urlBase + base64Encoded;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error generando código QR AFIP", e);
+        }
+    }
 }
 

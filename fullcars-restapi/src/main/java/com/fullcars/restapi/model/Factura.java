@@ -34,6 +34,7 @@ public class Factura {
     @JsonBackReference
 	@OneToOne
 	private Sale sale;
+    
     private String fileUrl;
 	
     @Column(name = "cuit_emisor", nullable = false)

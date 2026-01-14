@@ -52,6 +52,12 @@ public class SaleService {
 	}
 	
 	@Transactional
+	public Sale update(Sale sale) {
+		sale.getDetails().forEach(d -> d.setSale(sale));
+		
+		return saleRepo.save(sale);
+	}
+	@Transactional
 	public void delete(Long id) {
         Sale sale = saleRepo.findById(id).orElseThrow(() -> 
 					new EntityNotFoundException("Venta no encontrada con id: " + id));			 
