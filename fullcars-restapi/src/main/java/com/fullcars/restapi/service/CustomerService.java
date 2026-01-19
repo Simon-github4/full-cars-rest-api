@@ -56,7 +56,7 @@ public class CustomerService {
 		return summary;
 	}
 
-	public BigDecimal calculateTotalToCharge() {
-		return customerRepo.getTotalToChargeAll();
+	public BigDecimal calculateTotalPayments() {
+		return customerRepo.calculateTotalPayments();
 	}
 }

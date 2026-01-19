@@ -128,8 +128,8 @@ public class AfipPadronClient {
 		    String idImpuesto = getTagValue("idImpuesto", imp);
 		    
 		    // Opcional pero recomendado: Verificar que el impuesto no esté dado de baja
-		    String estado = getTagValue("estado", imp); 
-		    if ("BAJA".equals(estado)) continue; 
+		    String estado = getTagValue("estadoImpuesto", imp); 
+		    if ("BAJA".equals(estado)) continue;
 
 		    if ("30".equals(idImpuesto)) {
 		        esResponsableInscripto = true;

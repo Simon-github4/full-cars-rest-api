@@ -14,12 +14,10 @@ public interface ICustomerRepository extends JpaRepository<Customer, Long>{
     Optional<Customer> findByDni(String dni);
 
     @Query("""
-    	    SELECT COALESCE(SUM(sd.unitPrice * sd.quantity), 0) - COALESCE(SUM(p.amount), 0)
-    	    FROM SaleDetail sd
-    	    LEFT JOIN sd.sale s
-    	    LEFT JOIN Pay p ON p.customer = s.customer
+    	    SELECT COALESCE(SUM(p.amount), 0)
+    	    FROM Pay p
     	""")
-    BigDecimal getTotalToChargeAll();
+    BigDecimal calculateTotalPayments();
 
 
 }

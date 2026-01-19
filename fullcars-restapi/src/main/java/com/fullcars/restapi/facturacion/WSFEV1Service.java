@@ -44,7 +44,6 @@ public class WSFEV1Service extends WSFEV1Client {//implements Factura {
 	private static String buildFECAESolicitarRequest(AfipAuth auth, Sale sale, DatosFacturacion datos,
 			long numeroComprobante) {
 
-		// --- Cálculos de Totales ---
 		IvaAlicuota alicuota = datos.getAlicuota();
 		BigDecimal netoTotal = sale.getTotal(); // Asumimos que sale.getTotal() es el NETO
 		BigDecimal ivaTotal = netoTotal.multiply(alicuota.getMultiplicador()).setScale(2, RoundingMode.HALF_UP);
@@ -53,7 +52,7 @@ public class WSFEV1Service extends WSFEV1Client {//implements Factura {
 
 		long codigoCondicionIvaReceptor;
 		TiposComprobante tipoComprobante = datos.getTipoComprobante();
-		// Ajusta estos códigos si usás otros (ej. Nota de Crédito A/B)
+		// Ajusta estos códigos si usás otros (ej. Nota de Crédito A/B) |||| (Por ahora solo fact a Resp.INS o Cons.final anonimo)
 		if (tipoComprobante == TiposComprobante.FACTURA_A || tipoComprobante == TiposComprobante.FACTURA_B) {
 			codigoCondicionIvaReceptor = (tipoComprobante == TiposComprobante.FACTURA_A) ? 1L : 5L; // 1=Resp.Inscripto,5=Cons. Final
 		} else {
@@ -68,7 +67,6 @@ public class WSFEV1Service extends WSFEV1Client {//implements Factura {
 						+ "    <ar:Importe>%s</ar:Importe>" + "  </ar:AlicIva>" + "</ar:Iva>",
 				alicuota.getCodigo(), netoTotal.toString(), ivaTotal.toString());
 
-		// --- Plantilla SOAP ---
 		String soapTemplate = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:ar=\"http://ar.gov.afip.dif.FEV1/\">"
 				+ "<soapenv:Header/>" + "<soapenv:Body>" + "  <ar:FECAESolicitar>" + "    <ar:Auth>"
 				+ "       <ar:Token>%s</ar:Token>" + "       <ar:Sign>%s</ar:Sign>" + "       <ar:Cuit>%d</ar:Cuit>"

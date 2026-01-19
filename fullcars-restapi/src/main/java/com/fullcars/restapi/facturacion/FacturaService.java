@@ -52,9 +52,13 @@ public class FacturaService {
 		
 		DatosFacturacion datosFact = new DatosFacturacion(afipConfig.getCuit(), tiposComprobante, Long.parseLong(sale.getCustomer().getCuit()));
 		ContribuyenteData receptor = null;
-		if(datosFact.getTipoComprobante() == TiposComprobante.FACTURA_A)
+		if(datosFact.getTipoComprobante() == TiposComprobante.FACTURA_A) {
 			receptor = consultarContribuyente(tokenService.getTicket(Servicios.CONSTANCIA_INSCRIPCION), datosFact.getNumeroDocumento());
-		else {
+			if (receptor.getCondicionIva() != CondicionIva.RESPONSABLE_INSCRIPTO) 
+				    throw new IllegalArgumentException(
+				        "Error Fiscal: La Factura A solo puede emitirse a Responsables Inscriptos. " +
+				        "El cliente actual es: " + receptor.getCondicionIva());
+		}else {
 			//por AHORA SOLO PUEDE SER tipo B
 			receptor = ContribuyenteData.builder()
 				.nombre("CONSUMIDOR FINAL")
@@ -65,6 +69,8 @@ public class FacturaService {
 		        .condicionIva(CondicionIva.CONSUMIDOR_FINAL)
 		        .build();
 		}
+		
+			
 		CAEResponse response = emitirCae(sale, datosFact);
 		//response.setCae("1234567");response.setFechaVencimiento("22221111");response.setNumeroComprobante(1L);response.setObservaciones("obs");
 		
