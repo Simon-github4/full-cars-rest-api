@@ -1,5 +1,6 @@
 package com.fullcars.restapi.service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import com.fullcars.restapi.model.Pay;
@@ -35,5 +36,9 @@ public class PayService {
 
 	public List<Pay> getPayments(Long customerId) {
 		return payRepo.findByCustomerId(customerId);
+	}
+	
+	public BigDecimal calculateTotalPayments() {
+		return payRepo.calculateTotalPayments();
 	}
 }

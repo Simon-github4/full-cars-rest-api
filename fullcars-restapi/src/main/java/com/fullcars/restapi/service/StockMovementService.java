@@ -53,6 +53,19 @@ public class StockMovementService {//implements ApplicationListener<SaleEvent>{
 			});
 		}else if(e.getEventType() == EventType.DELETE) 
 			sale.getDetails().forEach(detail -> this.deleteByDetail(detail));
+		else if (e.getEventType() == EventType.ANULACION)// No borramos la salida original. Creamos una entrada nueva.
+	        sale.getDetails().forEach(detail -> {
+	            StockMovement move = StockMovement.builder()
+	                .id(null)
+	                .carPart(detail.getCarPart())
+	                .quantity(detail.getQuantity())
+	                .date(LocalDate.now()) // Fecha de hoy (cuando se anula)
+	                .reference("Anulación Venta " + detail.getSale().getId())
+	                .type(MovementType.ENTRADA_AJUSTE) 
+	                .saleDetail(null)
+	                .build();
+	            save(move);
+	        });
 	}
 
 	@Transactional// Opción 1: Misma transacción (todo o nada) -- Opción 2: Transacción separada @Transactional(propagation = Propagation.REQUIRES_NEW)

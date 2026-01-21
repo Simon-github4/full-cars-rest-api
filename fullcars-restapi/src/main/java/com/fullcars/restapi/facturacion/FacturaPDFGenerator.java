@@ -4,8 +4,11 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +16,7 @@ import java.util.Map;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fullcars.restapi.facturacion.enums.IvaAlicuota;
 import com.fullcars.restapi.facturacion.enums.TiposComprobante;
 import com.fullcars.restapi.model.Factura;
@@ -27,10 +31,6 @@ import net.sf.jasperreports.engine.JasperExportManager;
 import net.sf.jasperreports.engine.JasperFillManager;
 import net.sf.jasperreports.engine.JasperPrint;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 
 @Service
 public class FacturaPDFGenerator {
@@ -52,7 +52,7 @@ public class FacturaPDFGenerator {
 
         	Map<String, Object> parameters = mapearDtoAParametros(fact);
 	
-	        JRDataSource dataSource = new JRBeanCollectionDataSource(mapearDetalles(fact.getSale(), iva));
+	        JRDataSource dataSource = new JRBeanCollectionDataSource(mapearDetalles(fact.getSale(), iva, fact.getTipoComprobante()));
 	
 	        JasperPrint jasperPrint = JasperFillManager.fillReport(reportStream, parameters, dataSource);
 	        System.out.println(">>> 4. REPORTE LLENO. PÁGINAS GENERADAS: " + jasperPrint.getPages().size());
@@ -109,25 +109,37 @@ public class FacturaPDFGenerator {
         return params;
     }
     
-    private static List<DetalleFacturaDto> mapearDetalles(Sale sale, IvaAlicuota ivaAlicuota) {
+    private static List<DetalleFacturaDto> mapearDetalles(Sale sale, IvaAlicuota ivaAlicuota, Integer tipoComprobante) {
         List<DetalleFacturaDto> listaDetalles = new ArrayList<>();
 
-        for (SaleDetail item : sale.getDetails()) { // Ajusta 'SaleDetail' a tu clase real
+        BigDecimal divisorIva = BigDecimal.ONE.add(ivaAlicuota.getMultiplicador());
+        
+        for (SaleDetail item : sale.getDetails()) { 
             
-            // Cálculos por ítem (Ajusta según tu lógica de negocio)
-            BigDecimal precio = item.getUnitPrice();
-            Integer cantidad = item.getQuantity(); // Asegúrate que sea BigDecimal
-            BigDecimal subtotal = item.getSubTotal();
+        	BigDecimal precioFinalUnitario = item.getUnitPrice();
+            BigDecimal cantidad = BigDecimal.valueOf(item.getQuantity());
             
-            // Creamos el DTO del detalle
+            BigDecimal precioUnitarioParaMostrar;
+            BigDecimal subtotalParaMostrar;
+
+            if (tipoComprobante == TiposComprobante.FACTURA_A.getCodigo()) {
+                // FACTURA A: Debemos mostrar precios NETOS (Sin IVA)
+                precioUnitarioParaMostrar = precioFinalUnitario.divide(divisorIva, 2, RoundingMode.HALF_UP);
+                subtotalParaMostrar = precioUnitarioParaMostrar.multiply(cantidad);
+            } else {
+                // FACTURA B: Mostramos precios FINALES (Con IVA)
+                precioUnitarioParaMostrar = precioFinalUnitario;
+                subtotalParaMostrar = precioFinalUnitario.multiply(cantidad);
+            }
+            
             DetalleFacturaDto detalle = new DetalleFacturaDto(
-                item.getCarPart().getName(), // Nombre producto
-                cantidad,
-                precio,
-                BigDecimal.ZERO, // Bonificación (si tienes)
-                subtotal,        // Subtotal
-                ivaAlicuota.getMultiplicador().multiply(BigDecimal.valueOf(100)).toString()+"%",// Alicuota (puedes sacarla del producto si varía)
-                subtotal.add(ivaAlicuota.getMultiplicador().multiply(subtotal)) // Subtotal con IVA
+                item.getCarPart().getName(), 
+                item.getQuantity(),
+                precioUnitarioParaMostrar, // Neto en A, Final en B
+                BigDecimal.ZERO, 
+                subtotalParaMostrar,       // Neto en A, Final en B
+                ivaAlicuota.getMultiplicador().multiply(BigDecimal.valueOf(100)).stripTrailingZeros().toPlainString() + "%",
+                precioFinalUnitario.multiply(cantidad) 
             );
 
             listaDetalles.add(detalle);

@@ -45,4 +45,7 @@ public interface ISaleRepository extends JpaRepository<Sale, Long>{
 
 	@Query("SELECT s.customer.email FROM Sale s WHERE s.id = :id")
 	String findEmailById(@Param("id") Long id);
+	
+	@Query(value = "SELECT s FROM sale WHERE s.anulada = true", nativeQuery = true)
+    List<Sale> buscarSoloAnuladas();
 }

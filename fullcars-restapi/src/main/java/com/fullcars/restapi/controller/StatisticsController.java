@@ -22,6 +22,7 @@ import com.fullcars.restapi.model.Purchase;
 import com.fullcars.restapi.model.Sale;
 import com.fullcars.restapi.service.CarPartService;
 import com.fullcars.restapi.service.CustomerService;
+import com.fullcars.restapi.service.PayService;
 import com.fullcars.restapi.service.PurchaseService;
 import com.fullcars.restapi.service.SaleService;
 
@@ -33,13 +34,15 @@ public class StatisticsController {
     private final PurchaseService purchaseService;
     private final CarPartService carPartService;
     private final CustomerService customerService;
+    private final PayService payService;
 
     @Autowired
-    public StatisticsController(SaleService saleService, CarPartService carPartService, PurchaseService purchaseService, CustomerService customerService) {
+    public StatisticsController(SaleService saleService, CarPartService carPartService, PurchaseService purchaseService, CustomerService customerService, PayService payService) {
         this.saleService = saleService;
         this.carPartService = carPartService;
         this.purchaseService = purchaseService;
         this.customerService = customerService;
+		this.payService = payService;
     }
 
     @GetMapping
@@ -52,7 +55,7 @@ public class StatisticsController {
         List<SalesData> salesDataList = new ArrayList<>();
 
         BigDecimal totalSales = BigDecimal.ZERO;
-        BigDecimal totalPayments = customerService.calculateTotalPayments();
+        BigDecimal totalPayments = payService.calculateTotalPayments();
 
         List<Sale> rawSales = saleService.getSales(start, end, null);
         for (Sale sale : rawSales) {

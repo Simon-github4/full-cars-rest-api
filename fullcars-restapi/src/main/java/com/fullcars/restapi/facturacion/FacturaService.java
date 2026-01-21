@@ -194,11 +194,11 @@ public class FacturaService {
 		factura.setCondicionIvaCliente(contribuyente.getCondicionIva());
 
 		// 4. Cálculos de Importes (Basado en Sale y la alícuota de DatosFacturacion)
-		BigDecimal neto = sale.getTotal();
-		BigDecimal multiplicadorIva = datos.getAlicuota().getMultiplicador(); // Ej: 0.21
-
-		BigDecimal importeIva = neto.multiply(multiplicadorIva).setScale(2, RoundingMode.HALF_UP);
-		BigDecimal totalVenta = neto.add(importeIva).setScale(2, RoundingMode.HALF_UP);
+		BigDecimal totalVenta = sale.getTotal().setScale(2, RoundingMode.HALF_UP);
+		BigDecimal divisor = BigDecimal.ONE.add(datos.getAlicuota().getMultiplicador());// 1.21
+		BigDecimal neto = totalVenta.divide(divisor, 2, RoundingMode.HALF_UP);
+		// Es más seguro restar para evitar diferencias de centavos por redondeo
+		BigDecimal importeIva = totalVenta.subtract(neto);
 
 		factura.setImpNeto(neto);
 		factura.setImpIva(importeIva);

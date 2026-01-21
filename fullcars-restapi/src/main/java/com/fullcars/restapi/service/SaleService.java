@@ -33,6 +33,7 @@ public class SaleService {
 	private final CustomerService customerService;
 	private final ApplicationEventPublisher appEventPublisher;
 	private final EmailService mailService;
+	private static final String REMITOS_PATH = "C:"+ File.separator + "SoftwareFullCars"+ File.separator + "Remitos de Ventas";
 
 	public SaleService(ISaleRepository repo, ApplicationEventPublisher publisher, CustomerService customerService, EmailService mailService) {
 		this.saleRepo = repo;
@@ -57,21 +58,36 @@ public class SaleService {
 		
 		return saleRepo.save(sale);
 	}
+
 	@Transactional
 	public void delete(Long id) {
-        Sale sale = saleRepo.findById(id).orElseThrow(() -> 
-					new EntityNotFoundException("Venta no encontrada con id: " + id));			 
-        appEventPublisher.publishEvent(new SaleEvent(this, sale, EventType.DELETE));
-        String filePath = sale.getRemitoPath();
-        saleRepo.deleteById(id);
+		Sale sale = saleRepo.findById(id)
+				.orElseThrow(() -> new EntityNotFoundException("Venta no encontrada con id: " + id));
 
-        if(filePath != null)
-			try {
-				Files.deleteIfExists(Paths.get(filePath));
-			} catch (IOException e) {
-				System.err.println("No se pudo borrar el remito de venta");
-				e.printStackTrace();
-			}
+		if (sale.getFactura() != null) {
+
+			if (sale.isAnulada()) 
+				throw new RuntimeException("La venta ya se encuentra anulada.");
+			
+			sale.setAnulada(true);
+			saleRepo.save(sale);
+			appEventPublisher.publishEvent(new SaleEvent(this, sale, EventType.ANULACION));
+
+		}else {
+			appEventPublisher.publishEvent(new SaleEvent(this, sale, EventType.DELETE));
+
+			String filePath = sale.getRemitoPath();
+			if (filePath != null) 
+				try {
+					Files.deleteIfExists(Paths.get(filePath));
+				} catch (IOException e) {
+					System.err.println("No se pudo borrar el remito de venta: " + filePath);
+					e.printStackTrace();
+				}
+
+			saleRepo.deleteById(id);//arriba de borrar file antes
+		}
+        
 	}
 	
 	@Transactional(readOnly = true)
@@ -99,8 +115,9 @@ public class SaleService {
 	}
 
 	public String uploadRemito(Long id, MultipartFile file) throws Exception {//it is called after new sale save on controller
-		String desktopPath = System.getProperty("user.home") + File.separator + "Desktop" + File.separator + "Remitos de Ventas";
-    	Path folderPath = Paths.get(desktopPath);
+		//String desktopPath = System.getProperty("user.home") + File.separator + "Desktop" + File.separator + "Remitos de Ventas";
+
+		Path folderPath = Paths.get(REMITOS_PATH);
         if (!Files.exists(folderPath)) 
             Files.createDirectories(folderPath);
 

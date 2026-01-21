@@ -13,11 +13,6 @@ public interface ICustomerRepository extends JpaRepository<Customer, Long>{
 
     Optional<Customer> findByDni(String dni);
 
-    @Query("""
-    	    SELECT COALESCE(SUM(p.amount), 0)
-    	    FROM Pay p
-    	""")
-    BigDecimal calculateTotalPayments();
 
 
 }

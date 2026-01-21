@@ -18,19 +18,21 @@ public interface ICarPartRepository extends JpaRepository<CarPart, Long>{
 
     List<CarPart> findByStockLessThan(Long stockThreshold);
 
-	@Query("""
-			    SELECT new com.fullcars.restapi.dto.TopProductDTO(
-			        cp.sku,
-			        cp.name,
-			        SUM(sd.quantity),
-			        SUM(sd.quantity * sd.unitPrice)
-			    )
-			    FROM SaleDetail sd
-			    JOIN sd.carPart cp
-			    GROUP BY cp.id, cp.sku, cp.name
-			    ORDER BY SUM(sd.quantity) DESC
-			""")
-	List<TopProductDTO> findTopProducts(Pageable pageable);
+    @Query("""
+    	    SELECT new com.fullcars.restapi.dto.TopProductDTO(
+    	        cp.sku,
+    	        cp.name,
+    	        SUM(sd.quantity),
+    	        SUM(sd.quantity * sd.unitPrice)
+    	    )
+    	    FROM SaleDetail sd
+    	    JOIN sd.carPart cp
+    	    JOIN sd.sale s          
+    	    WHERE s.anulada = false 
+    	    GROUP BY cp.id, cp.sku, cp.name
+    	    ORDER BY SUM(sd.quantity) DESC
+    	""")
+    	List<TopProductDTO> findTopProducts(Pageable pageable);
 
 	@Query("""
 			SELECT c FROM CarPart c

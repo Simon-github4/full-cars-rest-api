@@ -29,6 +29,7 @@ public class PurchaseService {
 	private final IPurchaseRepository purchaseRepo;
 	private final ProviderService providerService;
 	private final ApplicationEventPublisher appEventPublisher;
+	private static final String FILES_PATH = "C:"+ File.separator + "SoftwareFullCars"+ File.separator + "Archivos de Compras";
 
 	public PurchaseService(IPurchaseRepository repo, ProviderService providerService, ApplicationEventPublisher appEventPublisher) {
 		this.purchaseRepo = repo;
@@ -85,8 +86,7 @@ public class PurchaseService {
 	}
 
 	public String uploadBill(Long id, MultipartFile file) throws IOException {
-		String desktopPath = System.getProperty("user.home") + File.separator + "Desktop" + File.separator + "Archivos de Compras";
-    	Path folderPath = Paths.get(desktopPath);
+		Path folderPath = Paths.get(FILES_PATH);
         if (!Files.exists(folderPath)) 
             Files.createDirectories(folderPath);
 

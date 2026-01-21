@@ -31,8 +31,7 @@ public class WSFEV1Service extends WSFEV1Client {//implements Factura {
 		System.out.println("Próximo número a autorizar: " + proximoNumero);
 
 		String soapRequest = buildFECAESolicitarRequest(auth, sale, datos, proximoNumero);
-		System.out.println("Enviando solicitud de autorización (WSFEV1)..." + soapRequest); // Descomentar para debug
-																							// pesado
+		System.out.println("Enviando solicitud de autorización (WSFEV1)..." + soapRequest); // Descomentar para debug pesado
 
 		String soapResponse = invokeWS(soapRequest, "FECAESolicitar", endpoint, service);
 		System.out.println("Respuesta recibida." + soapResponse); // Descomentar para debug pesado
@@ -45,9 +44,15 @@ public class WSFEV1Service extends WSFEV1Client {//implements Factura {
 			long numeroComprobante) {
 
 		IvaAlicuota alicuota = datos.getAlicuota();
-		BigDecimal netoTotal = sale.getTotal(); // Asumimos que sale.getTotal() es el NETO
-		BigDecimal ivaTotal = netoTotal.multiply(alicuota.getMultiplicador()).setScale(2, RoundingMode.HALF_UP);
-		BigDecimal totalComprobante = netoTotal.add(ivaTotal).setScale(2, RoundingMode.HALF_UP);
+		
+		BigDecimal totalComprobante = sale.getTotal().setScale(2, RoundingMode.HALF_UP);
+	    BigDecimal divisor = BigDecimal.ONE.add(alicuota.getMultiplicador());//(Ej: Si la alícuota es 0.21, el divisor es 1.21)
+
+	    BigDecimal netoTotal = totalComprobante.divide(divisor, 2, RoundingMode.HALF_UP);
+
+	    // Es MEJOR hacerlo por resta que multiplicando, para evitar errores de redondeo de 1 centavo
+	    BigDecimal ivaTotal = totalComprobante.subtract(netoTotal);
+	    
 		String fecha = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));//sale.getDate().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 
 		long codigoCondicionIvaReceptor;

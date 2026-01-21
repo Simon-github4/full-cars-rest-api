@@ -6,6 +6,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hibernate.annotations.Where;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
@@ -27,6 +29,7 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "sale")
+@Where(clause = "anulada = false")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -42,6 +45,10 @@ public class Sale {
     private String saleNumber;
     private BigDecimal taxes; // discount
 
+    @Builder.Default
+    @Column(name = "anulada", columnDefinition = "boolean default false")
+    private boolean anulada = false;
+    
     @ManyToOne
     private Customer customer;
     
