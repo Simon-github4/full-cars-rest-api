@@ -38,6 +38,7 @@ public class FacturaPDFGenerator {
     // Ruta donde guardaste el archivo compilado por JasperStudio dentro de 'resources'
     private static final String REPORT_A = "reports/facturaA.jasper";
     private static final String REPORT_B = "reports/facturaB.jasper";
+	private static final String PARTICULAR_SINIESTRO = "Particular";// NO tiene patente ni numero siniestro
 
     public static byte[] generarFacturaPDF(Factura fact, IvaAlicuota iva) throws JRException, IOException {
 
@@ -103,6 +104,14 @@ public class FacturaPDFGenerator {
         System.out.println(generarTextoQR(fact));
         params.put("QR_CODE_PAYLOAD", generarTextoQR(fact));
         
+        String siniestro = fact.getSale().getSaleNumber();
+        if(fact.getTipoComprobante() == TiposComprobante.FACTURA_A.getCodigo())
+        	params.put("NUMERO_SINIESTRO", (siniestro != null) ? siniestro : "");
+        else if(siniestro != null && !siniestro.isBlank() && !PARTICULAR_SINIESTRO.equals(siniestro))//FACT B
+        	params.put("PATENTE", "Patente: "+siniestro);
+        else//no hay patente en Fact B
+        	params.put("PATENTE", " ");
+        
         // Parámetro opcional para imágenes (logo) si lo necesitas a futuro
         // params.put("LOGO_DIR", new ClassPathResource("img/logo.png").getPath());
 
@@ -133,7 +142,7 @@ public class FacturaPDFGenerator {
             }
             
             DetalleFacturaDto detalle = new DetalleFacturaDto(
-                item.getCarPart().getName(), 
+                item.getCarPart().getName()+ "  " +((item.getCarPart().getDescription() != null)? item.getCarPart().getDescription() : ""), 
                 item.getQuantity(),
                 precioUnitarioParaMostrar, // Neto en A, Final en B
                 BigDecimal.ZERO, 

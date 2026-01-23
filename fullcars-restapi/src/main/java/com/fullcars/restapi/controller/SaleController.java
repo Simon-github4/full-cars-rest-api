@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -26,8 +25,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.fullcars.restapi.model.Sale;
-import com.fullcars.restapi.model.SaleDetail;
-import com.fullcars.restapi.service.SaleDetailService;
 import com.fullcars.restapi.service.SaleService;
 
 @RestController
@@ -35,11 +32,9 @@ import com.fullcars.restapi.service.SaleService;
 public class SaleController {
 
 private final SaleService saleService;
-private final SaleDetailService detailsService;
 	
-	public SaleController(SaleService repo, SaleDetailService repod) {
+	public SaleController(SaleService repo) {
 		this.saleService = repo;
-		this.detailsService = repod;
 	}
 	
 	@PostMapping("/{idCustomer}")

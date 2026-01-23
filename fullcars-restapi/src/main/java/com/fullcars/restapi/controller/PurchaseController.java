@@ -31,7 +31,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.fullcars.restapi.dto.ConfirmPurchasePayDTO;
 import com.fullcars.restapi.model.Purchase;
-import com.fullcars.restapi.service.PurchaseDetailService;
 import com.fullcars.restapi.service.PurchaseService;
 
 @RestController
@@ -39,17 +38,18 @@ import com.fullcars.restapi.service.PurchaseService;
 public class PurchaseController {
 
 	private final PurchaseService purchaseService;
-	private final PurchaseDetailService detailsService;
 
-	public PurchaseController(PurchaseService repo, PurchaseDetailService repod) {
+	public PurchaseController(PurchaseService repo) {
 		this.purchaseService = repo;
-		this.detailsService = repod;
 	}
 	
 	@PostMapping("/{idProvider}")
 	@ResponseStatus(HttpStatus.CREATED)
 	public Purchase post(@RequestBody Purchase b, @PathVariable Long idProvider) {
-		return purchaseService.save(b, idProvider);
+		if(b.getId() == null)
+			return purchaseService.save(b, idProvider);
+		else
+			return purchaseService.update(b);
 	}
 	
 	@GetMapping("/{id}")

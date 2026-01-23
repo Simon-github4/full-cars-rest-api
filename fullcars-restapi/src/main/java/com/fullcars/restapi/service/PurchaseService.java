@@ -47,6 +47,16 @@ public class PurchaseService {
 	}
 	
 	@Transactional
+	public Purchase update(Purchase p) {
+	    if (!purchaseRepo.existsById(p.getId())) {
+	        throw new EntityNotFoundException("La compra no existe");
+	    }
+	    // IMPORTANTE: actualmente nadie le interesa el update de la compra
+	    //appEventPublisher.publishEvent(new PurchaseEvent(this, updatedPurchase, EventType.UPDATE));
+	    return purchaseRepo.save(p);
+	}
+	
+	@Transactional
 	public void delete(Long id) {
         Purchase deletedPurchase = purchaseRepo.findById(id).orElseThrow(()-> 
         							new EntityNotFoundException("Compra no encontrado con id: " + id)); 
