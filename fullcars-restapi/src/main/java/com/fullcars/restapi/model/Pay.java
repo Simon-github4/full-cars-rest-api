@@ -32,8 +32,8 @@ public class Pay {
     @ManyToOne
     private Customer customer;
     
-    //@ManyToOne
-    //private Sale sale;//not confirmed yet
+    @ManyToOne
+    private Sale sale;
     private String description;
 
 }
