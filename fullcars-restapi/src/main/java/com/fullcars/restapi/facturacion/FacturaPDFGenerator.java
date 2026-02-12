@@ -142,7 +142,7 @@ public class FacturaPDFGenerator {
             }
             
             DetalleFacturaDto detalle = new DetalleFacturaDto(
-                item.getCarPart().getName()+ "  " +((item.getCarPart().getDescription() != null)? item.getCarPart().getDescription() : ""), 
+                item.getFacturaDescription(), 
                 item.getQuantity(),
                 precioUnitarioParaMostrar, // Neto en A, Final en B
                 BigDecimal.ZERO, 

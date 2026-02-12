@@ -34,6 +34,7 @@ public class SaleService {
 	private final ApplicationEventPublisher appEventPublisher;
 	private final EmailService mailService;
 	private static final String REMITOS_PATH = "C:"+ File.separator + "SoftwareFullCars"+ File.separator + "Remitos de Ventas";
+	private static final String COMODIN_SKU = "COMODIN";
 
 	public SaleService(ISaleRepository repo, ApplicationEventPublisher publisher, CustomerService customerService, EmailService mailService) {
 		this.saleRepo = repo;
@@ -44,9 +45,16 @@ public class SaleService {
 	
 	@Transactional
 	public Sale save(Sale sale, Long idCustomer) {
-		Customer c = customerService.findByIdOrThrow(idCustomer);
-		sale.setCustomer(c);
-		sale.getDetails().forEach(d -> d.setSale(sale));
+		sale.setCustomer(customerService.findByIdOrThrow(idCustomer));
+		sale.getDetails().forEach(d -> {
+			d.setSale(sale);
+			if(d.getCarPart().getSku().equalsIgnoreCase(COMODIN_SKU)) {
+		        if (d.getPrintedDescription() == null || d.getPrintedDescription().trim().isEmpty()) 
+		            throw new IllegalArgumentException("El artículo "+COMODIN_SKU+" requiere una descripción manual obligatoria.");
+		    }else 
+		        d.setPrintedDescription(null); //Si NO es comodín, forzamos NULL para no guardar basura (siguiendo tu lógica)
+		});
+		
 		Sale savedSale = saleRepo.save(sale);
 		appEventPublisher.publishEvent(new SaleEvent(this, savedSale, EventType.INSERT));
 		return savedSale;
