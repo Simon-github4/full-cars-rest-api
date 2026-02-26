@@ -77,6 +77,9 @@ private ICarPartRepository carPartRepo;
 	}
 	
 	private String generateSku(CarPart c) {
+		if(c.getId() == -1L)
+			return "COMODIN";
+		
 		StringBuilder sb = new StringBuilder();
 		sb.append(c.getBrand().getId().toString()).append("-")
 		  .append(c.getCategory().getId().toString()).append("-")
