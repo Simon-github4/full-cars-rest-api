@@ -13,49 +13,60 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fullcars.restapi.dto.MultiPaymentRequest;
+import com.fullcars.restapi.dto.MultiPaymentResponse;
+import com.fullcars.restapi.dto.PendingSalesResponse;
 import com.fullcars.restapi.model.Pay;
+import com.fullcars.restapi.service.MultiPaymentService;
 import com.fullcars.restapi.service.PayService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping(value = "/payments")
 public class PayController {
 
-private PayService payService;
-	
-	public PayController(PayService repo) {
-		this.payService = repo;
-	}
-	
-	@PostMapping
-	@ResponseStatus(HttpStatus.CREATED)
-	public Pay post(@RequestBody Pay b) {
-		return payService.save(b);
-	}
-//----------------PODRIAN SER EL MISMO, USAN EL MISMO METODO SAVE-------------------------
-	@PutMapping("/{id}")
-	@ResponseStatus(HttpStatus.OK)
-	public Pay put(@PathVariable Long id, @RequestBody Pay b) {
-		if (!id.equals(b.getId())) 
-            throw new IllegalArgumentException("El ID enviado y el ID del pago deben coincidir");
-        return payService.save(b);
+//    private final PayService payService;
+    private final MultiPaymentService multiPaymentService;
+
+    public PayController(MultiPaymentService multiPaymentService) {
+//        this.payService = payService;
+        this.multiPaymentService = multiPaymentService;
+    }
+
+    @GetMapping("/customers/{customerId}/pending")
+    @ResponseStatus(HttpStatus.OK)
+    public PendingSalesResponse getPendingSales(@PathVariable Long customerId) {
+        return multiPaymentService.getPendingSales(customerId);
+    }
+
+    @GetMapping("/customer/{customerId}")
+    @ResponseStatus(HttpStatus.OK)
+    public List<MultiPaymentResponse> getPaymentsByCustomer(@PathVariable Long customerId) {
+        return multiPaymentService.getPaymentsByCustomer(customerId);
+    }
+
+    @GetMapping("/{id}/detail")
+    @ResponseStatus(HttpStatus.OK)
+    public MultiPaymentResponse getPaymentDetail(@PathVariable Long id) {
+        return multiPaymentService.getPaymentDetail(id);
+    }
+
+    @PostMapping("/multi")
+    @ResponseStatus(HttpStatus.CREATED)
+    public MultiPaymentResponse createMultiPayment(@Valid @RequestBody MultiPaymentRequest request) {
+        return multiPaymentService.processMultiPayment(request);
+    }
+
+    /*@GetMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public Pay getPayment(@PathVariable Long id){
+        return payService.findByIdOrThrow(id);
+    }*/
+    
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+    	multiPaymentService.deletePayment(id);
     }
 	
-	@GetMapping("/{id}")
-	@ResponseStatus(HttpStatus.OK)
-	public Pay getCategory(@PathVariable Long id){
-		return payService.findByIdOrThrow(id);
-	}
-	
-	@GetMapping
-	@ResponseStatus(HttpStatus.OK)
-	public List<Pay> getPayments(){
-		return payService.getPayments();
-	}
-	
-	@DeleteMapping("/{id}")
-	public void delete(@PathVariable Long id) {
-		payService.delete(id);
-	}
-	
 }
-

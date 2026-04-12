@@ -26,7 +26,6 @@ public class DatabaseBackupRunner implements ApplicationRunner {
     private void backupDatabase() throws IOException, InterruptedException {
         String user = env.getProperty("spring.datasource.username");
         String password = env.getProperty("spring.datasource.password");
-        // Ajusta la ruta de pg_dump si no está en el PATH
         String pgDumpPath = env.getProperty("spring.datasource.pgdump-path");
         String url = env.getProperty("spring.datasource.url"); 
         String dbName = url.substring(url.lastIndexOf("/") + 1);
@@ -54,4 +53,3 @@ public class DatabaseBackupRunner implements ApplicationRunner {
     }
 	
 }
-

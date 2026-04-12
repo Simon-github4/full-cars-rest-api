@@ -31,3 +31,28 @@ build/
 
 ### VS Code ###
 .vscode/
+/.apt_generated_tests/
+
+### CREDENTIALS & SECRETS (DO NOT COMMIT) ###
+# Application properties with sensitive data
+src/main/resources/application*.properties
+!src/main/resources/application.properties.template
+
+# Google credentials
+*.json
+!google-credentials.json.template
+
+# ARCA certificates
+*.crt
+*.key
+*.pfx
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OS sensitive files
+Thumbs.db
+*.swp
+*~

@@ -1,7 +1,6 @@
 package com.fullcars.restapi.model;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -9,6 +8,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,30 +20,24 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 @Entity
-public class Pay {
+public class PayAllocation {
 
-	@Id
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
-	@Column(precision = 15, scale = 2)
-    private BigDecimal amount;
-    
-    private LocalDate date;
-    
-    private String paymentMethod;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    private Customer customer;
-    
-    private String description;
-    
-    @Column(name = "credit_used", precision = 19, scale = 2)
-    @Builder.Default
-    private BigDecimal creditUsed = BigDecimal.ZERO;
-    
-    @Column(name = "credit_generated", precision = 19, scale = 2)
-    @Builder.Default
-    private BigDecimal creditGenerated = BigDecimal.ZERO;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pay_id", nullable = false)
+    private Pay pay;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sale_id", nullable = false)
+    private Sale sale;
+
+    @Column(name = "amount_applied", nullable = false, precision = 19, scale = 2)
+    private BigDecimal amountApplied;
+
+    @Column(name = "is_credit", nullable = false)
+    @Builder.Default
+    private Boolean isCredit = false;
 }

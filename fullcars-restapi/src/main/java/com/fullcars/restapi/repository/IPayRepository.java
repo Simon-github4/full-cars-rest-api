@@ -18,5 +18,4 @@ public interface IPayRepository extends JpaRepository<Pay, Long>{
     	    FROM Pay p
     	""")
     BigDecimal calculateTotalPayments();
-    
 }

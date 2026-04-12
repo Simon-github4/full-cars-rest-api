@@ -1,5 +1,7 @@
 package com.fullcars.restapi.model;
 
+import java.math.BigDecimal;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,7 +19,10 @@ public class Customer {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-   // private Long balance;
+    @Column(precision = 19, scale = 2)
+    @Builder.Default
+    private BigDecimal creditBalance = BigDecimal.ZERO;
+    
     private String fullName;
     private String dni;
     private String cuit;

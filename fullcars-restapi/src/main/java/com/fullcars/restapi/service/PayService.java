@@ -9,6 +9,7 @@ import com.fullcars.restapi.repository.IPayRepository;
 import jakarta.persistence.EntityNotFoundException;
 
 @Service
+@Deprecated
 public class PayService {
 	
 	private IPayRepository payRepo;

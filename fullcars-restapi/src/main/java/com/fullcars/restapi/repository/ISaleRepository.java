@@ -3,6 +3,9 @@ package com.fullcars.restapi.repository;
 import java.time.LocalDate;
 import java.util.List;
 
+import java.math.BigDecimal;
+import java.util.List;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -48,4 +51,15 @@ public interface ISaleRepository extends JpaRepository<Sale, Long>{
 	
 	@Query(value = "SELECT s FROM sale WHERE s.anulada = true", nativeQuery = true)
     List<Sale> buscarSoloAnuladas();
+
+    @Query("SELECT s FROM Sale s WHERE s.customer.id = :customerId AND s.anulada = false ORDER BY s.date DESC")
+    List<Sale> findPendingByCustomerId(@Param("customerId") Long customerId);
+
+    @Query("""
+        SELECT s FROM Sale s 
+        WHERE s.customer.id = :customerId 
+        AND s.anulada = false 
+        ORDER BY s.date ASC
+        """)
+    List<Sale> findByCustomerIdOrderByDate(@Param("customerId") Long customerId);
 }
