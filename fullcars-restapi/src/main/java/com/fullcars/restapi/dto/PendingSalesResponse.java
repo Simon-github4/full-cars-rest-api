@@ -31,7 +31,7 @@ public class PendingSalesResponse {
         private BigDecimal total;
         private BigDecimal totalPaid;
         private BigDecimal remainingDue;
-        private Long facturaId;
-        private String invoiceNumber;
+        private String cae;
+        private String saleNumber;
     }
 }

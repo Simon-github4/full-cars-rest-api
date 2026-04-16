@@ -71,9 +71,8 @@ public class MultiPaymentService {
                         .total(total)
                         .totalPaid(totalPaid)
                         .remainingDue(remaining)
-                        .facturaId(sale.getFactura() != null ? sale.getFactura().getId() : null)
-                        .invoiceNumber(sale.getFactura() != null ? 
-                                sale.getFactura().getNumeroComprobante().toString() : null)
+                        .cae(sale.getFactura() != null ? sale.getFactura().getCae() : null)
+                        .saleNumber(sale.getSaleNumber())
                         .build());
                 totalPending = totalPending.add(remaining);
             }
