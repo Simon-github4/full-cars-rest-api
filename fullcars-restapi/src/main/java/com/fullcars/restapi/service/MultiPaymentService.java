@@ -5,57 +5,60 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fullcars.restapi.dto.MultiPaymentRequest;
+import com.fullcars.restapi.dto.MultiPaymentRequest.PaymentSplitRequest;
 import com.fullcars.restapi.dto.MultiPaymentResponse;
-import com.fullcars.restapi.dto.MultiPaymentResponse.AllocationInfo;
-import com.fullcars.restapi.dto.MultiPaymentResponse.CreditInfo;
-import com.fullcars.restapi.dto.MultiPaymentResponse.SaleUpdate;
+import com.fullcars.restapi.dto.PaymentSplitDTO;
 import com.fullcars.restapi.dto.PendingSalesResponse;
 import com.fullcars.restapi.dto.PendingSalesResponse.SalePendingInfo;
 import com.fullcars.restapi.model.Customer;
 import com.fullcars.restapi.model.CustomerCredit;
 import com.fullcars.restapi.model.Pay;
 import com.fullcars.restapi.model.PayAllocation;
+import com.fullcars.restapi.model.PaymentSplit;
 import com.fullcars.restapi.model.Sale;
 import com.fullcars.restapi.repository.ICustomerCreditRepository;
-import com.fullcars.restapi.repository.ICustomerRepository;
 import com.fullcars.restapi.repository.IPayAllocationRepository;
 import com.fullcars.restapi.repository.IPayRepository;
-import com.fullcars.restapi.repository.ISaleRepository;
+import com.fullcars.restapi.repository.IPaymentSplitRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 
 @Service
 public class MultiPaymentService {
 
-    private final ICustomerRepository customerRepository;
-    private final ISaleRepository saleRepository;
+    private final CustomerService customerService;
+    private final SaleService saleService;
     private final IPayRepository payRepository;
+    private final IPaymentSplitRepository paymentSplitRepository;
     private final IPayAllocationRepository payAllocationRepository;
     private final ICustomerCreditRepository customerCreditRepository;
 
     public MultiPaymentService(
-            ICustomerRepository customerRepository,
-            ISaleRepository saleRepository,
+            CustomerService customerService,
+            SaleService saleService,
             IPayRepository payRepository,
+            IPaymentSplitRepository paymentSplitRepository,
             IPayAllocationRepository payAllocationRepository,
             ICustomerCreditRepository customerCreditRepository) {
-        this.customerRepository = customerRepository;
-        this.saleRepository = saleRepository;
+        this.customerService = customerService;
+        this.saleService = saleService;
         this.payRepository = payRepository;
+        this.paymentSplitRepository = paymentSplitRepository;
         this.payAllocationRepository = payAllocationRepository;
         this.customerCreditRepository = customerCreditRepository;
     }
 
     public PendingSalesResponse getPendingSales(Long customerId) {
-        Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new EntityNotFoundException("Cliente no encontrado: " + customerId));
+        Customer customer = customerService.findByIdOrThrow(customerId);
 
-        List<Sale> sales = saleRepository.findByCustomerIdOrderByDate(customerId);
+        List<Sale> sales = saleService.findByCustomerIdOrderByDate(customerId);
         List<SalePendingInfo> pendingSales = new ArrayList<>();
         BigDecimal totalPending = BigDecimal.ZERO;
 
@@ -89,19 +92,19 @@ public class MultiPaymentService {
 
     @Transactional
     public MultiPaymentResponse processMultiPayment(MultiPaymentRequest request) {
-        Customer customer = customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new EntityNotFoundException("Cliente no encontrado: " + request.getCustomerId()));
+        Customer customer = customerService.findByIdOrThrow(request.getCustomerId());
 
         List<Sale> salesToPay;
         if (request.getSaleIds() != null && !request.getSaleIds().isEmpty()) {
-            salesToPay = saleRepository.findAllById(request.getSaleIds());
-            for (Sale s : salesToPay) 
-                if (!s.getCustomer().getId().equals(request.getCustomerId())) 
+            salesToPay = saleService.findAllByIds(request.getSaleIds());
+            for (Sale s : salesToPay) {
+                if (!s.getCustomer().getId().equals(request.getCustomerId())) {
                     throw new IllegalArgumentException("La venta " + s.getId() + " no pertenece al cliente");
-            
-        } else 
-            salesToPay = saleRepository.findByCustomerIdOrderByDate(request.getCustomerId());
-        
+                }
+            }
+        } else {
+            salesToPay = saleService.findByCustomerIdOrderByDate(request.getCustomerId());
+        }
 
         List<Sale> pendingSales = salesToPay.stream()
                 .filter(s -> getRemainingDue(s).compareTo(BigDecimal.ZERO) > 0)
@@ -115,109 +118,131 @@ public class MultiPaymentService {
                 .map(this::getRemainingDue)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+        BigDecimal totalSplits = request.getSplits().stream()
+                .map(PaymentSplitRequest::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
         BigDecimal creditUsed = BigDecimal.ZERO;
         if (Boolean.TRUE.equals(request.getUseCredit())) {
-            BigDecimal faltaCubrir = totalDebt.subtract(request.getPaymentAmount());
+            BigDecimal faltaCubrir = totalDebt.subtract(totalSplits);
             if (faltaCubrir.compareTo(BigDecimal.ZERO) > 0) {
                 if (customer.getCreditBalance().compareTo(faltaCubrir) < 0) {
-                    throw new IllegalArgumentException(String.format(
-                        "Credito insuficiente. Necesitas $%.2f, tienes $%.2f de credito",
-                        faltaCubrir, customer.getCreditBalance()));
+                    creditUsed = customer.getCreditBalance();
+                } else {
+                    creditUsed = faltaCubrir;
                 }
-                creditUsed = faltaCubrir;
             }
         }
 
-        BigDecimal effectivePayment = request.getPaymentAmount().add(creditUsed);
-        
+        BigDecimal effectivePayment = totalSplits.add(creditUsed);
+
         if (effectivePayment.compareTo(totalDebt) < 0) {
-            throw new IllegalArgumentException(String.format(
-                "Monto insuficiente. Total pendiente: $%.2f, Monto disponible (pago + credito): $%.2f, Faltan: $%.2f",
-                totalDebt, effectivePayment, totalDebt.subtract(effectivePayment)));
         }
-        
+
         BigDecimal creditGenerated = BigDecimal.ZERO;
 
         Pay payment = Pay.builder()
-                .amount(request.getPaymentAmount())
-                .date(request.getDate() != null ? request.getDate() : LocalDate.now())
-                .paymentMethod(request.getPaymentMethod())
                 .customer(customer)
+                .date(request.getDate() != null ? request.getDate() : LocalDate.now())
                 .description(request.getNotes())
                 .creditUsed(creditUsed)
                 .creditGenerated(BigDecimal.ZERO)
                 .build();
         payment = payRepository.save(payment);
 
-        List<AllocationInfo> allocations = new ArrayList<>();
-        List<SaleUpdate> salesUpdated = new ArrayList<>();
+        Map<Long, BigDecimal> remainingPerSale = pendingSales.stream()
+                .collect(Collectors.toMap(Sale::getId, this::getRemainingDue));
 
-        BigDecimal remainingCash = request.getPaymentAmount();
-        BigDecimal remainingCredit = creditUsed;
+        List<PaymentSplitDTO> splitDTOs = new ArrayList<>();
 
-        for (Sale sale : pendingSales) {
-            if (remainingCash.compareTo(BigDecimal.ZERO) <= 0 && remainingCredit.compareTo(BigDecimal.ZERO) <= 0) break;
+        for (PaymentSplitRequest splitReq : request.getSplits()) {
+            PaymentSplit split = PaymentSplit.builder()
+                    .pay(payment)
+                    .amount(splitReq.getAmount())
+                    .paymentMethod(splitReq.getPaymentMethod())
+                    .reference(splitReq.getReference())
+                    .build();
+            split = paymentSplitRepository.save(split);
 
-            BigDecimal saleRemaining = getRemainingDue(sale.getId());
-            BigDecimal cashApplied = BigDecimal.ZERO;
-            BigDecimal creditApplied = BigDecimal.ZERO;
+            List<String> salesCovered = new ArrayList<>();
+            BigDecimal remainingInSplit = splitReq.getAmount();
 
-            if (remainingCash.compareTo(BigDecimal.ZERO) > 0) {
-                cashApplied = remainingCash.min(saleRemaining);
-                remainingCash = remainingCash.subtract(cashApplied);
-                saleRemaining = saleRemaining.subtract(cashApplied);
+            for (Sale sale : pendingSales) {
+                BigDecimal saleRemaining = remainingPerSale.getOrDefault(sale.getId(), BigDecimal.ZERO);
+                if (saleRemaining.compareTo(BigDecimal.ZERO) <= 0 || remainingInSplit.compareTo(BigDecimal.ZERO) <= 0) {
+                    continue;
+                }
 
-                PayAllocation cashAllocation = PayAllocation.builder()
-                        .pay(payment)
+                BigDecimal amountToApply = remainingInSplit.min(saleRemaining);
+
+                PayAllocation allocation = PayAllocation.builder()
+                        .paymentSplit(split)
                         .sale(sale)
-                        .amountApplied(cashApplied)
+                        .amountApplied(amountToApply)
                         .isCredit(false)
                         .build();
-                payAllocationRepository.save(cashAllocation);
+                payAllocationRepository.save(allocation);
 
-                allocations.add(AllocationInfo.builder()
-                        .saleId(sale.getId())
-                        .saleTotal(sale.getTotal())
-                        .amountApplied(cashApplied)
-                        .build());
+                remainingPerSale.put(sale.getId(), saleRemaining.subtract(amountToApply));
+                remainingInSplit = remainingInSplit.subtract(amountToApply);
+
+                salesCovered.add(sale.getId().toString());
+
+                if (remainingInSplit.compareTo(BigDecimal.ZERO) <= 0) {
+                    break;
+                }
             }
 
-            if (remainingCredit.compareTo(BigDecimal.ZERO) > 0 && saleRemaining.compareTo(BigDecimal.ZERO) > 0) {
-                creditApplied = remainingCredit.min(saleRemaining);
-                remainingCredit = remainingCredit.subtract(creditApplied);
-
-                PayAllocation creditAllocation = PayAllocation.builder()
-                        .pay(payment)
-                        .sale(sale)
-                        .amountApplied(creditApplied)
-                        .isCredit(true)
-                        .build();
-                payAllocationRepository.save(creditAllocation);
-
-                allocations.add(AllocationInfo.builder()
-                        .saleId(sale.getId())
-                        .saleTotal(sale.getTotal())
-                        .amountApplied(creditApplied)
-                        .build());
-            }
-
-            BigDecimal totalAppliedToSale = cashApplied.add(creditApplied);
-            BigDecimal newTotalPaid = getTotalPaidForSale(sale.getId());
-            BigDecimal newRemaining = sale.getTotal().subtract(newTotalPaid).setScale(2, RoundingMode.HALF_UP);
-            boolean paid = newRemaining.compareTo(BigDecimal.ZERO) <= 0;
-
-            salesUpdated.add(SaleUpdate.builder()
-                    .saleId(sale.getId())
-                    .total(sale.getTotal())
-                    .totalPaid(newTotalPaid)
-                    .remainingDue(newRemaining.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : newRemaining)
-                    .paid(paid)
+            splitDTOs.add(PaymentSplitDTO.builder()
+                    .splitId(split.getId())
+                    .amount(splitReq.getAmount())
+                    .paymentMethod(splitReq.getPaymentMethod())
+                    .reference(splitReq.getReference())
+                    .salesCovered(salesCovered)
                     .build());
         }
 
-        BigDecimal totalRemaining = remainingCash.add(remainingCredit);
-        if (totalRemaining.compareTo(BigDecimal.ZERO) > 0) {
-            creditGenerated = totalRemaining;
+        if (creditUsed.compareTo(BigDecimal.ZERO) > 0) {
+            PaymentSplit creditSplit = PaymentSplit.builder()
+                    .pay(payment)
+                    .amount(creditUsed)
+                    .paymentMethod("Credito a favor")
+                    .build();
+            creditSplit = paymentSplitRepository.save(creditSplit);
+
+            List<String> salesCovered = new ArrayList<>();
+
+            for (Sale sale : pendingSales) {
+                BigDecimal saleRemaining = remainingPerSale.getOrDefault(sale.getId(), BigDecimal.ZERO);
+                if (saleRemaining.compareTo(BigDecimal.ZERO) <= 0) {
+                    continue;
+                }
+
+                BigDecimal amountToApply = creditUsed.min(saleRemaining);
+
+                PayAllocation allocation = PayAllocation.builder()
+                        .paymentSplit(creditSplit)
+                        .sale(sale)
+                        .amountApplied(amountToApply)
+                        .isCredit(true)
+                        .build();
+                payAllocationRepository.save(allocation);
+
+                remainingPerSale.put(sale.getId(), saleRemaining.subtract(amountToApply));
+
+                salesCovered.add(sale.getId().toString());
+            }
+
+            splitDTOs.add(PaymentSplitDTO.builder()
+                    .splitId(creditSplit.getId())
+                    .amount(creditUsed)
+                    .paymentMethod("credito")
+                    .salesCovered(salesCovered)
+                    .build());
+        }
+
+        if (effectivePayment.compareTo(totalDebt) > 0) {
+            creditGenerated = effectivePayment.subtract(totalDebt);
             payment.setCreditGenerated(creditGenerated);
             payRepository.save(payment);
 
@@ -235,11 +260,17 @@ public class MultiPaymentService {
         if (creditUsed.compareTo(BigDecimal.ZERO) > 0) {
             customer.setCreditBalance(customer.getCreditBalance().subtract(creditUsed));
         }
-        customerRepository.save(customer);
+        customerService.save(customer);
+
+        BigDecimal totalAmount = splitDTOs.stream()
+                .map(PaymentSplitDTO::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         String summary;
         if (creditGenerated.compareTo(BigDecimal.ZERO) > 0) {
             summary = String.format("Pago realizado. Saldo a favor generado: $%.2f", creditGenerated);
+        } else if (effectivePayment.compareTo(totalDebt) < 0) {
+            summary = String.format("Pago parcial aplicado. Restan $%.2f por cubrir", totalDebt.subtract(effectivePayment));
         } else {
             summary = "Pago aplicado correctamente a las ventas seleccionadas";
         }
@@ -247,16 +278,13 @@ public class MultiPaymentService {
         return MultiPaymentResponse.builder()
                 .paymentId(payment.getId())
                 .customerId(customer.getId())
-                .paymentAmount(request.getPaymentAmount())
-                .creditUsed(creditUsed)
                 .date(payment.getDate())
-                .paymentMethod(payment.getPaymentMethod())
-                .allocations(allocations)
-                .salesUpdated(salesUpdated)
-                .creditGenerated(creditGenerated.compareTo(BigDecimal.ZERO) > 0 ?
-                        CreditInfo.builder().amount(creditGenerated)
-                                .description("Saldo a favor generado").build() : null)
+                .description(payment.getDescription())
+                .totalAmount(totalAmount)
+                .creditUsed(creditUsed)
+                .creditGenerated(creditGenerated)
                 .customerCreditBalance(customer.getCreditBalance())
+                .splits(splitDTOs)
                 .summary(summary)
                 .build();
     }
@@ -265,26 +293,30 @@ public class MultiPaymentService {
     public void deletePayment(Long payId) {
         Pay pay = payRepository.findById(payId).orElseThrow();
         Customer customer = pay.getCustomer();
-        
+
         BigDecimal creditUsed = pay.getCreditUsed();
         BigDecimal creditGenerated = pay.getCreditGenerated();
-        
-        // Eliminar allocations
-        payAllocationRepository.deleteByPayId(payId);
-        
-        // Ajustar crédito del cliente
+
+        List<PaymentSplit> splits = pay.getSplits();
+        for (PaymentSplit split : splits) {
+        	for (PayAllocation alloc : split.getAllocations()) {
+        		payAllocationRepository.delete(alloc);
+        	}
+            paymentSplitRepository.delete(split);
+        }
+
         if (creditUsed != null && creditUsed.compareTo(BigDecimal.ZERO) > 0) {
-            customer.setCreditBalance(customer.getCreditBalance().add(creditUsed)); // + vuelve
+            customer.setCreditBalance(customer.getCreditBalance().add(creditUsed));
         }
-        
+
         if (creditGenerated != null && creditGenerated.compareTo(BigDecimal.ZERO) > 0) {
-            customer.setCreditBalance(customer.getCreditBalance().subtract(creditGenerated)); // - se pierde
+            customer.setCreditBalance(customer.getCreditBalance().subtract(creditGenerated));
         }
-        
-        customerRepository.save(customer);
+
+        customerService.save(customer);
         payRepository.delete(pay);
     }
-    
+
     private BigDecimal getTotalPaidForSale(Long saleId) {
         return payAllocationRepository.findBySaleId(saleId).stream()
                 .map(PayAllocation::getAmountApplied)
@@ -297,71 +329,60 @@ public class MultiPaymentService {
         return total.subtract(paid).setScale(2, RoundingMode.HALF_UP);
     }
 
-    private BigDecimal getRemainingDue(Long saleId) {
-        Sale sale = saleRepository.findById(saleId)
-                .orElseThrow(() -> new EntityNotFoundException("Venta no encontrada: " + saleId));
-        return getRemainingDue(sale);
-    }
-
+    @Transactional(readOnly = true)
     public List<MultiPaymentResponse> getPaymentsByCustomer(Long customerId) {
-        Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new EntityNotFoundException("Cliente no encontrado: " + customerId));
+        customerService.findByIdOrThrow(customerId);
 
         List<Pay> payments = payRepository.findByCustomerId(customerId);
         List<MultiPaymentResponse> responses = new ArrayList<>();
 
         for (Pay pay : payments) {
-            MultiPaymentResponse response = buildPaymentResponse(pay);
-            responses.add(response);
+            responses.add(buildPaymentResponse(pay));
         }
 
         return responses;
     }
 
+    @Transactional(readOnly = true)
     public MultiPaymentResponse getPaymentDetail(Long payId) {
         Pay pay = payRepository.findById(payId)
                 .orElseThrow(() -> new EntityNotFoundException("Pago no encontrado: " + payId));
         return buildPaymentResponse(pay);
     }
-
+    
+@Transactional(readOnly = true)
     private MultiPaymentResponse buildPaymentResponse(Pay pay) {
-        List<PayAllocation> allocations = payAllocationRepository.findByPayId(pay.getId());
+        List<PaymentSplit> splits = paymentSplitRepository.findByPayId(pay.getId());
         
-        List<AllocationInfo> allocationInfos = allocations.stream()
-                .map(a -> AllocationInfo.builder()
-                        .saleId(a.getSale().getId())
-                        .saleTotal(a.getSale().getTotal())
-                        .amountApplied(a.getAmountApplied())
-                        .isCredit(a.getIsCredit())
-                        .build())
-                .toList();
-
-        List<SaleUpdate> salesUpdated = allocations.stream()
-                .map(a -> {
-                    BigDecimal totalPaid = getTotalPaidForSale(a.getSale().getId());
-                    BigDecimal remaining = a.getSale().getTotal().subtract(totalPaid).setScale(2, RoundingMode.HALF_UP);
-                    return SaleUpdate.builder()
-                            .saleId(a.getSale().getId())
-                            .total(a.getSale().getTotal())
-                            .totalPaid(totalPaid)
-                            .remainingDue(remaining.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : remaining)
-                            .paid(remaining.compareTo(BigDecimal.ZERO) <= 0)
-                            .build();
-                })
-                .toList();
+        List<PaymentSplitDTO> splitDTOs = new ArrayList<>();
+        
+        for (PaymentSplit split : splits) {
+            List<PayAllocation> allocations = payAllocationRepository.findBySplitId(split.getId());
+            
+            List<String> salesCovered = new ArrayList<>();
+            for (PayAllocation a : allocations) 
+                if (a.getSale() != null) 
+                    salesCovered.add(a.getSale().getId().toString());
+            
+            splitDTOs.add(PaymentSplitDTO.builder()
+                    .splitId(split.getId())
+                    .amount(split.getAmount())
+                    .paymentMethod(split.getPaymentMethod())
+                    .reference(split.getReference())
+                    .salesCovered(salesCovered)
+                    .build());
+        }
 
         return MultiPaymentResponse.builder()
                 .paymentId(pay.getId())
                 .customerId(pay.getCustomer().getId())
-                .paymentAmount(pay.getAmount())
-                .creditUsed(pay.getCreditUsed())
                 .date(pay.getDate())
-                .paymentMethod(pay.getPaymentMethod())
-                .allocations(allocationInfos)
-                .salesUpdated(salesUpdated)
-                .creditGenerated(pay.getCreditGenerated() != null && pay.getCreditGenerated().compareTo(BigDecimal.ZERO) > 0 ?
-                        CreditInfo.builder().amount(pay.getCreditGenerated()).description("Saldo a favor generado").build() : null)
+                .description(pay.getDescription())
+                .totalAmount(pay.getTotalAmount())
+                .creditUsed(pay.getCreditUsed())
+                .creditGenerated(pay.getCreditGenerated())
                 .customerCreditBalance(pay.getCustomer().getCreditBalance())
+                .splits(splitDTOs)
                 .summary("Pago #" + pay.getId())
                 .build();
     }

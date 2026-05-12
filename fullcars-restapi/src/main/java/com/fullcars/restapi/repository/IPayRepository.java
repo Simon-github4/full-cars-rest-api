@@ -15,7 +15,7 @@ public interface IPayRepository extends JpaRepository<Pay, Long>{
 
     @Query("""
     	    SELECT COALESCE(SUM(p.amount), 0)
-    	    FROM Pay p
+    	    FROM PaymentSplit p
     	""")
     BigDecimal calculateTotalPayments();
 }

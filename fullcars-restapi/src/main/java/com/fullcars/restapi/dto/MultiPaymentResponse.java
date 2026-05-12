@@ -17,27 +17,16 @@ public class MultiPaymentResponse {
 
     private Long paymentId;
     private Long customerId;
-    private BigDecimal paymentAmount;
-    private BigDecimal creditUsed;
     private LocalDate date;
-    private String paymentMethod;
+    private String description;
     
-    private List<AllocationInfo> allocations;
-    private List<SaleUpdate> salesUpdated;
-    private CreditInfo creditGenerated;
+    private BigDecimal totalAmount;
+    private BigDecimal creditUsed;
+    private BigDecimal creditGenerated;
     private BigDecimal customerCreditBalance;
+    
+    private List<PaymentSplitDTO> splits;
     private String summary;
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class AllocationInfo {
-        private Long saleId;
-        private BigDecimal saleTotal;
-        private BigDecimal amountApplied;
-        private Boolean isCredit;
-    }
 
     @Data
     @NoArgsConstructor
@@ -49,15 +38,5 @@ public class MultiPaymentResponse {
         private BigDecimal totalPaid;
         private BigDecimal remainingDue;
         private boolean paid;
-    }
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class CreditInfo {
-        private Long creditId;
-        private BigDecimal amount;
-        private String description;
     }
 }

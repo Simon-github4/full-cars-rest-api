@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.fullcars.restapi.dto.StockMovementDTO;
 import com.fullcars.restapi.model.PurchaseDetail;
 import com.fullcars.restapi.model.SaleDetail;
 import com.fullcars.restapi.model.StockMovement;
@@ -17,11 +18,8 @@ import com.fullcars.restapi.model.StockMovement;
 public interface IStockMovementRepository extends JpaRepository<StockMovement, Long>{
 
 	public void deleteByPurchaseDetail(PurchaseDetail d);
-
 	public void deleteBySaleDetail(SaleDetail d);
-	
 	public Optional<StockMovement> findByPurchaseDetail(PurchaseDetail d);
-
 	public Optional<StockMovement> findBySaleDetail(SaleDetail d);
 	
 	@Query("""
@@ -38,6 +36,35 @@ public interface IStockMovementRepository extends JpaRepository<StockMovement, L
 		""")
 	public Long getCurrentStockByCarPartId(@Param("carPartId") Long carPartId);
 
-    public List<StockMovement> findByDateBetween(LocalDate start, LocalDate end);
-
+	@Query("""
+		    SELECT new com.fullcars.restapi.dto.StockMovementDTO(
+		        m.id, 
+		        m.quantity, 
+		        m.date, 
+		        m.reference, 
+		        c.sku, 
+		        m.type
+		    ) 
+		    FROM StockMovement m 
+		    LEFT JOIN m.carPart c
+		    WHERE m.date BETWEEN :startDate AND :endDate
+		    """)
+		List<StockMovementDTO> findByDateBetweenAsDTO(
+		    @Param("startDate") LocalDate startDate, 
+		    @Param("endDate") LocalDate endDate
+		);
+	
+    @Query("""
+            SELECT new com.fullcars.restapi.dto.StockMovementDTO(
+                m.id, 
+                m.quantity, 
+                m.date, 
+                m.reference, 
+                c.sku, 
+                m.type
+            ) 
+            FROM StockMovement m 
+            LEFT JOIN m.carPart c
+            """)
+        List<StockMovementDTO> findAllAsDTO();
 }

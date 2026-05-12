@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+import com.fullcars.restapi.dto.StockMovementDTO;
 import com.fullcars.restapi.enums.EventType;
 import com.fullcars.restapi.enums.MovementType;
 import com.fullcars.restapi.event.PurchaseEvent;
@@ -131,8 +132,8 @@ public class StockMovementService {//implements ApplicationListener<SaleEvent>{
 	}
 	
 	@Transactional(readOnly = true)
-	public List<StockMovement> getStockMovements(){
-		return stockRepo.findAll();
+	public List<StockMovementDTO> getStockMovements(){
+		return stockRepo.findAllAsDTO();
 	}
 	@Transactional(readOnly = true)
 	public Long getCurrentStockByCarPartId(Long id) {
@@ -140,8 +141,8 @@ public class StockMovementService {//implements ApplicationListener<SaleEvent>{
 		return stock != null ? stock : 0;
 	}
 	@Transactional(readOnly = true)
-	public List<StockMovement> getStockMovementsBetween(LocalDate start, LocalDate end) {
-		return stockRepo.findByDateBetween(start, end);
+	public List<StockMovementDTO> getStockMovementsBetween(LocalDate start, LocalDate end) {
+		return stockRepo.findByDateBetweenAsDTO(start, end);
 	}
 	
 }

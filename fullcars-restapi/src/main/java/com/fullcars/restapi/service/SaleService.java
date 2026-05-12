@@ -99,9 +99,24 @@ public class SaleService {
 	}
 	
 	@Transactional(readOnly = true)
+	public Sale findById(Long id) {
+		return saleRepo.findById(id).orElse(null);
+	}
+
+	@Transactional(readOnly = true)
 	public Sale findByIdOrThrow(Long id) {
 		return saleRepo.findById(id).orElseThrow(() -> 
 						new EntityNotFoundException("Venta no encontrada con id: " + id));
+	}
+
+	@Transactional(readOnly = true)
+	public List<Sale> findAllByIds(List<Long> ids) {
+		return saleRepo.findAllById(ids);
+	}
+
+	@Transactional(readOnly = true)
+	public List<Sale> findByCustomerIdOrderByDate(Long customerId) {
+		return saleRepo.findByCustomerIdOrderByDate(customerId);
 	}
 	
 	@Transactional(readOnly = true)

@@ -1,6 +1,8 @@
 package com.fullcars.restapi.model;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -10,6 +12,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,24 +23,26 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 @Entity
-public class PayAllocation {
+public class PaymentSplit {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "payment_split_id")
-    private PaymentSplit paymentSplit;
+    @JoinColumn(name = "pay_id", nullable = false)
+    private Pay pay;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sale_id", nullable = false)
-    private Sale sale;
+    @Column(name = "amount", nullable = false, precision = 19, scale = 2)
+    private BigDecimal amount;
 
-    @Column(name = "amount_applied", nullable = false, precision = 19, scale = 2)
-    private BigDecimal amountApplied;
+    @Column(name = "payment_method", nullable = false)
+    private String paymentMethod;
 
-    @Column(name = "is_credit", nullable = false)
+    @Column(name = "reference")
+    private String reference;
+
+    @OneToMany(mappedBy = "paymentSplit", fetch = FetchType.LAZY)
     @Builder.Default
-    private Boolean isCredit = false;
+    private List<PayAllocation> allocations = new ArrayList<>();
 }

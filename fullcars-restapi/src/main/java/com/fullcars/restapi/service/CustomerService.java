@@ -34,6 +34,10 @@ public class CustomerService {
         customerRepo.deleteById(id);
 	}
 	
+	public Customer findById(Long id) {
+		return customerRepo.findById(id).orElse(null);
+	}
+
 	public Customer findByIdOrThrow(Long id) {
 		return customerRepo.findById(id).orElseThrow(() -> 
 						new EntityNotFoundException("Cliente no encontrada con id: " + id));
