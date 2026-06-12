@@ -1,4 +1,5 @@
 package com.fullcars.restapi.facturacion;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -11,143 +12,177 @@ import org.w3c.dom.NodeList;
 import com.fullcars.restapi.dto.AfipAuth;
 import com.fullcars.restapi.dto.CAEResponse;
 import com.fullcars.restapi.dto.DatosFacturacion;
-import com.fullcars.restapi.facturacion.enums.Factura;
 import com.fullcars.restapi.facturacion.enums.IvaAlicuota;
 import com.fullcars.restapi.facturacion.enums.TipoDocumento;
 import com.fullcars.restapi.facturacion.enums.TiposComprobante;
+import com.fullcars.restapi.model.Factura;
 import com.fullcars.restapi.model.Sale;
 
-/**
- * Servicio para generar CAE utilizando el Web Service WSFEV1 de AFIP. Este
- * servicio (a diferencia de WSMTXCA) requiere SOAPAction y no maneja detalle de
- * ítems en la solicitud, solo totales.
- */
-public class WSFEV1Service extends WSFEV1Client {//implements Factura {
+public class WSFEV1Service extends WSFEV1Client {
 
-	// Proceso principal para generar un CAE.
-	//@Override
-	public static CAEResponse generarCAE(AfipAuth auth, Sale sale, DatosFacturacion datos, long ultimoComp, String endpoint, String service) throws Exception {
-		long proximoNumero = ultimoComp + 1;
-		System.out.println("Próximo número a autorizar: " + proximoNumero);
+    /*public static CAEResponse generarCAE(AfipAuth auth, Sale sale, DatosFacturacion datos, long ultimoComp,
+            String endpoint, String service) throws Exception {
+        return generarCAE(auth, sale, datos, ultimoComp, endpoint, service, null, null);
+    }
 
-		String soapRequest = buildFECAESolicitarRequest(auth, sale, datos, proximoNumero);
-		System.out.println("Enviando solicitud de autorización (WSFEV1)..." + soapRequest); // Descomentar para debug pesado
+    public static CAEResponse generarCAE(AfipAuth auth, Sale sale, DatosFacturacion datos, long ultimoComp,
+            String endpoint, String service, Factura comprobanteAsociado) throws Exception {
+        return generarCAE(auth, sale, datos, ultimoComp, endpoint, service, comprobanteAsociado, null);
+    }*/
 
-		String soapResponse = invokeWS(soapRequest, "FECAESolicitar", endpoint, service);
-		System.out.println("Respuesta recibida." + soapResponse); // Descomentar para debug pesado
+    public static CAEResponse generarCAE(AfipAuth auth, Sale sale, DatosFacturacion datos, long ultimoComp,
+            String endpoint, String service, Factura comprobanteAsociado, BigDecimal totalOverride) throws Exception {
+        long proximoNumero = ultimoComp + 1;
+        System.out.println("Proximo numero a autorizar: " + proximoNumero);
 
-		return parseFECAESolicitarResponse(soapResponse, proximoNumero);
-	}
+        String soapRequest = buildFECAESolicitarRequest(auth, sale, datos, proximoNumero, comprobanteAsociado, totalOverride);
+        System.out.println("Enviando solicitud de autorizacion (WSFEV1)..." + soapRequest);
 
-	// Construye el XML principal para 'FECAESolicitar' (WSFEV1)
-	private static String buildFECAESolicitarRequest(AfipAuth auth, Sale sale, DatosFacturacion datos,
-			long numeroComprobante) {
+        String soapResponse = invokeWS(soapRequest, "FECAESolicitar", endpoint, service);
+        System.out.println("Respuesta recibida." + soapResponse);
 
-		IvaAlicuota alicuota = datos.getAlicuota();
-		
-		BigDecimal totalComprobante = sale.getTotal().setScale(2, RoundingMode.HALF_UP);
-	    BigDecimal divisor = BigDecimal.ONE.add(alicuota.getMultiplicador());//(Ej: Si la alícuota es 0.21, el divisor es 1.21)
+        return parseFECAESolicitarResponse(soapResponse, proximoNumero);
+    }
 
-	    BigDecimal netoTotal = totalComprobante.divide(divisor, 2, RoundingMode.HALF_UP);
+    private static String buildFECAESolicitarRequest(AfipAuth auth, Sale sale, DatosFacturacion datos,
+            long numeroComprobante, Factura comprobanteAsociado, BigDecimal totalOverride) {
 
-	    // Es MEJOR hacerlo por resta que multiplicando, para evitar errores de redondeo de 1 centavo
-	    BigDecimal ivaTotal = totalComprobante.subtract(netoTotal);
-	    
-		String fecha = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));//sale.getDate().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        IvaAlicuota alicuota = datos.getAlicuota();
 
-		long codigoCondicionIvaReceptor;
-		TiposComprobante tipoComprobante = datos.getTipoComprobante();
-		// Ajusta estos códigos si usás otros (ej. Nota de Crédito A/B) |||| (Por ahora solo fact a Resp.INS o Cons.final anonimo)
-		if (tipoComprobante == TiposComprobante.FACTURA_A || tipoComprobante == TiposComprobante.FACTURA_B) {
-			codigoCondicionIvaReceptor = (tipoComprobante == TiposComprobante.FACTURA_A) ? 1L : 5L; // 1=Resp.Inscripto,5=Cons. Final
-		} else {
-			// Por defecto, asumimos Consumidor Final para otros comprobantes B (ej. Nota Credito B)
-			// O Resp. Inscripto para otros comprobantes A. ¡Esta lógica puede necesitar ajuste!
-			codigoCondicionIvaReceptor = (datos.getTipoDocumento() == TipoDocumento.CUIT) ? 1L : 5L;
-		}
+        BigDecimal totalComprobante = (totalOverride != null)
+                ? totalOverride.setScale(2, RoundingMode.HALF_UP)
+                : sale.getTotal().setScale(2, RoundingMode.HALF_UP);
+        BigDecimal divisor = BigDecimal.ONE.add(alicuota.getMultiplicador());
+        BigDecimal netoTotal = totalComprobante.divide(divisor, 2, RoundingMode.HALF_UP);
+        BigDecimal ivaTotal = totalComprobante.subtract(netoTotal);
 
-		// --- Bloque <Iva> (Desglose de alícuotas)-- WSFEV1 no usa 'arrayIva', sino un tag 'Iva' que contiene 'AlicIva'
-		String ivaXml = String.format(
-				"<ar:Iva>" + "  <ar:AlicIva>" + "    <ar:Id>%d</ar:Id>" + "    <ar:BaseImp>%s</ar:BaseImp>"
-						+ "    <ar:Importe>%s</ar:Importe>" + "  </ar:AlicIva>" + "</ar:Iva>",
-				alicuota.getCodigo(), netoTotal.toString(), ivaTotal.toString());
+        String fecha = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 
-		String soapTemplate = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:ar=\"http://ar.gov.afip.dif.FEV1/\">"
-				+ "<soapenv:Header/>" + "<soapenv:Body>" + "  <ar:FECAESolicitar>" + "    <ar:Auth>"
-				+ "       <ar:Token>%s</ar:Token>" + "       <ar:Sign>%s</ar:Sign>" + "       <ar:Cuit>%d</ar:Cuit>"
-				+ "    </ar:Auth>" + "    <ar:FeCAEReq>" + "       <ar:FeCabReq>"
-				+ "           <ar:CantReg>1</ar:CantReg>" + // Siempre 1 comprobante a la vez
-				"           <ar:PtoVta>%d</ar:PtoVta>" + "           <ar:CbteTipo>%d</ar:CbteTipo>"
-				+ "       </ar:FeCabReq>" + "       <ar:FeDetReq>" + "           <ar:FECAEDetRequest>"
-				+ "               <ar:Concepto>%d</ar:Concepto>" + "               <ar:DocTipo>%d</ar:DocTipo>"
-				+ "               <ar:DocNro>%d</ar:DocNro>"
-				+ "               <ar:CondicionIVAReceptorId>%d</ar:CondicionIVAReceptorId>"
-				+ "               <ar:CbteDesde>%d</ar:CbteDesde>" + "               <ar:CbteHasta>%d</ar:CbteHasta>"
-				+ "               <ar:CbteFch>%s</ar:CbteFch>" + "               <ar:ImpTotal>%s</ar:ImpTotal>"
-				+ "               <ar:ImpTotConc>0</ar:ImpTotConc>" + // Importe No Gravado
-				"               <ar:ImpNeto>%s</ar:ImpNeto>" + "               <ar:ImpOpEx>0</ar:ImpOpEx>" + // Importe
-																												// Exento
-				"               <ar:ImpTrib>0</ar:ImpTrib>" + // Importe Tributos
-				"               <ar:ImpIVA>%s</ar:ImpIVA>" + "               <ar:MonId>PES</ar:MonId>"
-				+ "               <ar:MonCotiz>1</ar:MonCotiz>" + "               %s" + // Aquí va ivaXml
-				"           </ar:FECAEDetRequest>" + "       </ar:FeDetReq>" + "    </ar:FeCAEReq>"
-				+ "  </ar:FECAESolicitar>" + "</soapenv:Body>" + "</soapenv:Envelope>";
+        long codigoCondicionIvaReceptor;
+        TiposComprobante tipoComprobante = datos.getTipoComprobante();
+        if (tipoComprobante == TiposComprobante.FACTURA_A || tipoComprobante == TiposComprobante.FACTURA_B) {
+            codigoCondicionIvaReceptor = (tipoComprobante == TiposComprobante.FACTURA_A) ? 1L : 5L;
+        } else {
+            codigoCondicionIvaReceptor = (datos.getTipoDocumento() == TipoDocumento.CUIT) ? 1L : 5L;
+        }
 
-		return String.format(soapTemplate, auth.getToken(), auth.getSign(), datos.getCuitEmisor(),
-				datos.getPuntoVenta(), datos.getTipoComprobante().getCodigo(), datos.getConcepto().codigo(),
-				datos.getTipoDocumento().getCodigo(), datos.getNumeroDocumento(), codigoCondicionIvaReceptor,
-				numeroComprobante, // CbteDesde
-				numeroComprobante, // CbteHasta
-				fecha, totalComprobante.toString(), netoTotal.toString(), ivaTotal.toString(), ivaXml // El bloque de desglose de IVA
-		);
-	}
+        String cbtesAsocXml = "";
+        if (comprobanteAsociado != null) {// es NC
+            cbtesAsocXml = String.format(
+                    "<ar:CbtesAsoc>"
+                            + "<ar:CbteAsoc>"
+                            + "<ar:Tipo>%d</ar:Tipo>"
+                            + "<ar:PtoVta>%d</ar:PtoVta>"
+                            + "<ar:Nro>%d</ar:Nro>"
+                            + "<ar:Cuit>%d</ar:Cuit>"
+                            + "<ar:CbteFch>%s</ar:CbteFch>"
+                            + "</ar:CbteAsoc>"
+                            + "</ar:CbtesAsoc>",
+                    comprobanteAsociado.getTipoComprobante(),
+                    comprobanteAsociado.getPuntoVenta(),
+                    comprobanteAsociado.getNumeroComprobante(),
+                    comprobanteAsociado.getCuitEmisor(),
+                    comprobanteAsociado.getFechaEmision().format(DateTimeFormatter.ofPattern("yyyyMMdd")));
+        }
 
-	// Parsea la respuesta de 'FECAESolicitar'
-	private static CAEResponse parseFECAESolicitarResponse(String soapResponse, long numeroComprobanteAsignado)
-			throws Exception {
-		CAEResponse response = new CAEResponse();
-		Document doc = parseXml(soapResponse);
+        String ivaXml = String.format(
+                "<ar:Iva>"
+                        + "<ar:AlicIva>"
+                        + "<ar:Id>%d</ar:Id>"
+                        + "<ar:BaseImp>%s</ar:BaseImp>"
+                        + "<ar:Importe>%s</ar:Importe>"
+                        + "</ar:AlicIva>"
+                        + "</ar:Iva>",
+                alicuota.getCodigo(), netoTotal.toString(), ivaTotal.toString());
 
-		// Buscar errores
-		NodeList errors = doc.getElementsByTagName("Err");
-		if (errors.getLength() > 0) {
-			String msg = getTagValue(errors.item(0), "Msg");
-			response.setError(msg != null ? msg : "Error desconocido de AFIP.");
-			return response;
-		}
+        String soapTemplate = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:ar=\"http://ar.gov.afip.dif.FEV1/\">"
+                + "<soapenv:Header/>"
+                + "<soapenv:Body>"
+                + "<ar:FECAESolicitar>"
+                + "<ar:Auth>"
+                + "<ar:Token>%s</ar:Token>"
+                + "<ar:Sign>%s</ar:Sign>"
+                + "<ar:Cuit>%d</ar:Cuit>"
+                + "</ar:Auth>"
+                + "<ar:FeCAEReq>"
+                + "<ar:FeCabReq>"
+                + "<ar:CantReg>1</ar:CantReg>"
+                + "<ar:PtoVta>%d</ar:PtoVta>"
+                + "<ar:CbteTipo>%d</ar:CbteTipo>"
+                + "</ar:FeCabReq>"
+                + "<ar:FeDetReq>"
+                + "<ar:FECAEDetRequest>"
+                + "<ar:Concepto>%d</ar:Concepto>"
+                + "<ar:DocTipo>%d</ar:DocTipo>"
+                + "<ar:DocNro>%d</ar:DocNro>"
+                + "<ar:CondicionIVAReceptorId>%d</ar:CondicionIVAReceptorId>"
+                + "<ar:CbteDesde>%d</ar:CbteDesde>"
+                + "<ar:CbteHasta>%d</ar:CbteHasta>"
+                + "<ar:CbteFch>%s</ar:CbteFch>"
+                + "<ar:ImpTotal>%s</ar:ImpTotal>"
+                + "<ar:ImpTotConc>0</ar:ImpTotConc>"
+                + "<ar:ImpNeto>%s</ar:ImpNeto>"
+                + "<ar:ImpOpEx>0</ar:ImpOpEx>"
+                + "<ar:ImpTrib>0</ar:ImpTrib>"
+                + "<ar:ImpIVA>%s</ar:ImpIVA>"
+                + "<ar:MonId>PES</ar:MonId>"
+                + "<ar:MonCotiz>1</ar:MonCotiz>"
+                + "%s"
+                + "%s"
+                + "</ar:FECAEDetRequest>"
+                + "</ar:FeDetReq>"
+                + "</ar:FeCAEReq>"
+                + "</ar:FECAESolicitar>"
+                + "</soapenv:Body>"
+                + "</soapenv:Envelope>";
 
-		// Buscar resultado exitoso
-		NodeList detResponse = doc.getElementsByTagName("FECAEDetResponse");
-		if (detResponse.getLength() > 0) {
-			Node detNode = detResponse.item(0);
+        return String.format(soapTemplate, auth.getToken(), auth.getSign(), datos.getCuitEmisor(),
+                datos.getPuntoVenta(), datos.getTipoComprobante().getCodigo(), datos.getConcepto().codigo(),
+                datos.getTipoDocumento().getCodigo(), datos.getNumeroDocumento(), codigoCondicionIvaReceptor,
+                numeroComprobante, numeroComprobante, fecha, totalComprobante.toString(), netoTotal.toString(),
+                ivaTotal.toString(), cbtesAsocXml, ivaXml);
+    }
 
-			String resultado = getTagValue(detNode, "Resultado");
+    private static CAEResponse parseFECAESolicitarResponse(String soapResponse, long numeroComprobanteAsignado)
+            throws Exception {
+        CAEResponse response = new CAEResponse();
+        Document doc = parseXml(soapResponse);
 
-			if ("A".equals(resultado)) { // A = Aprobado
-				response.setCae(getTagValue(detNode, "CAE"));
-				response.setFechaVencimiento(getTagValue(detNode, "CAEFchVto"));
-				response.setNumeroComprobante(numeroComprobanteAsignado);
+        NodeList errors = doc.getElementsByTagName("Err");
+        if (errors.getLength() > 0) {
+            String msg = getTagValue(errors.item(0), "Msg");
+            response.setError(msg != null ? msg : "Error desconocido de AFIP.");
+            return response;
+        }
 
-				// Buscar Observaciones (si las hay)
-				NodeList obs = doc.getElementsByTagName("Observaciones");
-				if (obs.getLength() > 0 && obs.item(0).hasChildNodes()) {
-					response.setObservaciones(getTagValue(obs.item(0).getFirstChild(), "Msg"));
-				}
-				return response;
+        NodeList detResponse = doc.getElementsByTagName("FECAEDetResponse");
+        if (detResponse.getLength() > 0) {
+            Node detNode = detResponse.item(0);
 
-			} else { // R = Rechazado
-				NodeList obs = doc.getElementsByTagName("Observaciones");
-				if (obs.getLength() > 0 && obs.item(0).hasChildNodes()) {
-					response.setError("Rechazado: " + getTagValue(obs.item(0).getFirstChild(), "Msg"));
-				} else {
-					response.setError("Rechazado por AFIP (sin observaciones).");
-				}
-				return response;
-			}
-		}
+            String resultado = getTagValue(detNode, "Resultado");
 
-		response.setError("Respuesta SOAP no reconocida.");
-		return response;
-	}
+            if ("A".equals(resultado)) {
+                response.setCae(getTagValue(detNode, "CAE"));
+                response.setFechaVencimiento(getTagValue(detNode, "CAEFchVto"));
+                response.setNumeroComprobante(numeroComprobanteAsignado);
 
+                NodeList obs = doc.getElementsByTagName("Observaciones");
+                if (obs.getLength() > 0 && obs.item(0).hasChildNodes()) {
+                    response.setObservaciones(getTagValue(obs.item(0).getFirstChild(), "Msg"));
+                }
+                return response;
+            }
+
+            NodeList obs = doc.getElementsByTagName("Observaciones");
+            if (obs.getLength() > 0 && obs.item(0).hasChildNodes()) {
+                response.setError("Rechazado: " + getTagValue(obs.item(0).getFirstChild(), "Msg"));
+            } else {
+                response.setError("Rechazado por AFIP (sin observaciones).");
+            }
+            return response;
+        }
+
+        response.setError("Respuesta SOAP no reconocida.");
+        return response;
+    }
 }

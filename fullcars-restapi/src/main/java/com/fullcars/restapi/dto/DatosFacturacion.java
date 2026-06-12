@@ -25,7 +25,7 @@ public class DatosFacturacion {
 	public DatosFacturacion(long cuitEmisor, TiposComprobante codigoComprobante, long numeroDocumentoComprador) {
 		this.cuitEmisor = cuitEmisor;
 		this.tipoComprobante = codigoComprobante;
-		if(codigoComprobante == TiposComprobante.FACTURA_A) {
+		if(codigoComprobante.getTipo() == 'A') {
 			this.tipoDocumento = TipoDocumento.CUIT;
 			this.numeroDocumentoComprador = numeroDocumentoComprador;
 		}else {

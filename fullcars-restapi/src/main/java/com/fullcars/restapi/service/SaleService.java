@@ -10,6 +10,7 @@ import java.nio.file.StandardCopyOption;
 import java.rmi.ServerException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
@@ -21,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.fullcars.restapi.enums.EventType;
 import com.fullcars.restapi.event.SaleEvent;
 import com.fullcars.restapi.model.Customer;
+import com.fullcars.restapi.model.Factura;
 import com.fullcars.restapi.model.Sale;
 import com.fullcars.restapi.repository.ISaleRepository;
 
@@ -107,6 +109,17 @@ public class SaleService {
 	public Sale findByIdOrThrow(Long id) {
 		return saleRepo.findById(id).orElseThrow(() -> 
 						new EntityNotFoundException("Venta no encontrada con id: " + id));
+	}
+
+	@Transactional(readOnly = true)
+	public Optional<Factura> findFacturaBySaleId(Long saleId) {
+		return saleRepo.findFacturaBySaleId(saleId);
+	}
+
+	@Transactional(readOnly = true)
+	public Sale findByFacturaIdOrThrow(Long facturaId) {
+		return saleRepo.findByFacturaId(facturaId).orElseThrow(() ->
+						new EntityNotFoundException("Venta no encontrada para la factura: " + facturaId));
 	}
 
 	@Transactional(readOnly = true)

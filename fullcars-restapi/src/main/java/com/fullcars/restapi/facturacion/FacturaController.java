@@ -3,6 +3,7 @@ package com.fullcars.restapi.facturacion;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 
 import org.springframework.core.io.InputStreamResource;
@@ -75,9 +76,42 @@ public class FacturaController {
                     .body(e.getMessage());
         }
     }
+
+    @PostMapping("/nota-credito/bySaleId")
+    public ResponseEntity<?> emitirNotaCredito(
+            @RequestParam Long SaleId,
+            @RequestParam(required = true) BigDecimal monto) {
+        try {
+            byte[] pdfBytes = facturaService.generarNotaCreditoBySale(SaleId, monto);
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"nota_credito_" + SaleId + ".pdf\"")
+                    .body(pdfBytes);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            return ResponseEntity.status(500)
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/nota-credito/by-sale/{saleId}")
+    public ResponseEntity<?> getNotaCreditoBySaleId(@PathVariable Long saleId) {
+        return ResponseEntity.ok(facturaService.findNotaCreditoBySaleId(saleId));
+    }
+
     @GetMapping("/isSaleFacturada")
     public boolean isSaleFacturada(@RequestParam Long idSale) {
     	return facturaService.isSaleFacturada(idSale);
+    }
+
+    @GetMapping("/isNotaCreditoEmitida")
+    public boolean isNotaCreditoEmitida(@RequestParam Long SaleId) {
+        return facturaService.isNotaCreditoEmitida(SaleId);
     }
 }
 

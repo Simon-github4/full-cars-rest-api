@@ -19,7 +19,7 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fullcars.restapi.facturacion.enums.IvaAlicuota;
 import com.fullcars.restapi.facturacion.enums.TiposComprobante;
-import com.fullcars.restapi.model.Factura;
+import com.fullcars.restapi.model.Comprobante;
 import com.fullcars.restapi.model.Sale;
 import com.fullcars.restapi.model.SaleDetail;
 
@@ -40,20 +40,20 @@ public class FacturaPDFGenerator {
     private static final String REPORT_B = "reports/facturaB.jasper";
 	private static final String PARTICULAR_SINIESTRO = "Particular";// NO tiene patente ni numero siniestro
 
-    public static byte[] generarFacturaPDF(Factura fact, IvaAlicuota iva) throws JRException, IOException {
+    public static byte[] generarFacturaPDF(Comprobante fact, Sale sale, IvaAlicuota iva) throws JRException, IOException {
 
-    	ClassPathResource resource = (fact.getTipoComprobante() == TiposComprobante.FACTURA_A.getCodigo())?
-    			new ClassPathResource(REPORT_A)
-    			:new ClassPathResource(REPORT_B);
+        ClassPathResource resource = (TiposComprobante.fromCodigo(fact.getTipoComprobante()).getTipo() == 'A')?
+                new ClassPathResource(REPORT_A)
+                :new ClassPathResource(REPORT_B);
         
         if (!resource.exists()) 
             throw new FileNotFoundException("¡ERROR FATAL! No encuentro el archivo: " + REPORT_A);
 
         try (InputStream reportStream = resource.getInputStream()) {
 
-        	Map<String, Object> parameters = mapearDtoAParametros(fact);
+            Map<String, Object> parameters = mapearDtoAParametros(fact, sale);
 	
-	        JRDataSource dataSource = new JRBeanCollectionDataSource(mapearDetalles(fact.getSale(), iva, fact.getTipoComprobante()));
+	        JRDataSource dataSource = new JRBeanCollectionDataSource(mapearDetalles(sale, iva, fact.getTipoComprobante()));
 	
 	        JasperPrint jasperPrint = JasperFillManager.fillReport(reportStream, parameters, dataSource);
 	        System.out.println(">>> 4. REPORTE LLENO. PÁGINAS GENERADAS: " + jasperPrint.getPages().size());
@@ -67,7 +67,7 @@ public class FacturaPDFGenerator {
      * Los nombres en "put" deben ser idénticos a los parámetros creados en JasperStudio.
      * @throws IOException 
      */
-    private static  Map<String, Object> mapearDtoAParametros(Factura fact) throws IOException {
+    private static  Map<String, Object> mapearDtoAParametros(Comprobante fact, Sale sale) throws IOException {
     	Map<String, Object> params = new HashMap<>();
     	DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     	params.put("LOGO_IMG", new ClassPathResource("static/logo-arca.jpg").getInputStream());
@@ -76,9 +76,12 @@ public class FacturaPDFGenerator {
         // Cabecera y Datos AFIP
         params.put("FECHA_EMISION", fact.getFechaEmision().format(formatter));
         params.put("PUNTO_VENTA", String.format("%05d", fact.getPuntoVenta()));
+        params.put("TEXTO_TITULO", fact.getTextoTitulo());
+        params.put("COMPROBANTE_ASOCIADO", fact.getComprobanteAsociadoToPDF() != null ? fact.getComprobanteAsociadoToPDF() : " ");
+        
         // Formateamos el número de comprobante a 8 dígitos con ceros a la izquierda
         params.put("COMP_NRO", String.format("%08d", fact.getNumeroComprobante()));
-        params.put("COD_FACT", fact.getTipoComprobante());
+        params.put("COD_FACT", String.format("%02d",fact.getTipoComprobante()));
         params.put("TIPO_FACT", TiposComprobante.fromCodigo(fact.getTipoComprobante()).getTipo());
         params.put("CAE", fact.getCae());
         params.put("FECHA_VTO_CAE", fact.getVtoCae().format(formatter));
@@ -94,7 +97,7 @@ public class FacturaPDFGenerator {
         params.put("RAZON_SOCIAL_CLIENTE", fact.getRazonSocialCliente());
         params.put("DOMICILIO_CLIENTE", fact.getDomicilioCliente());
         params.put("CONDICION_IVA_CLIENTE", fact.getCondicionIvaCliente().getDescripcion());
-        params.put("CONDICION_VENTA", (fact.getTipoComprobante() == TiposComprobante.FACTURA_A.getCodigo())?"Cuenta Corriente" : "Contado");
+        params.put("CONDICION_VENTA", (TiposComprobante.fromCodigo(fact.getTipoComprobante()).getTipo() == 'A')?"Cuenta Corriente" : "Contado");
 
         // Totales (Pasan como BigDecimal, Jasper sabe formatearlos como moneda)
         params.put("IMPORTE_NETO", fact.getImpNeto());
@@ -104,9 +107,9 @@ public class FacturaPDFGenerator {
         System.out.println(generarTextoQR(fact));
         params.put("QR_CODE_PAYLOAD", generarTextoQR(fact));
         
-        String siniestro = fact.getSale().getSaleNumber();
-        if(fact.getTipoComprobante() == TiposComprobante.FACTURA_A.getCodigo())
-        	params.put("NUMERO_SINIESTRO", (siniestro != null) ? siniestro : "");
+        String siniestro = sale.getSaleNumber();
+        if(TiposComprobante.fromCodigo(fact.getTipoComprobante()).getTipo() == 'A')
+            params.put("NUMERO_SINIESTRO", (siniestro != null) ? siniestro : "");
         else if(siniestro != null && !siniestro.isBlank() && !PARTICULAR_SINIESTRO.equals(siniestro))//FACT B
         	params.put("PATENTE", "Patente: "+siniestro);
         else//no hay patente en Fact B
@@ -131,7 +134,7 @@ public class FacturaPDFGenerator {
             BigDecimal precioUnitarioParaMostrar;
             BigDecimal subtotalParaMostrar;
 
-            if (tipoComprobante == TiposComprobante.FACTURA_A.getCodigo()) {
+            if (TiposComprobante.fromCodigo(tipoComprobante).getTipo() == 'A') {
                 // FACTURA A: Debemos mostrar precios NETOS (Sin IVA)
                 precioUnitarioParaMostrar = precioFinalUnitario.divide(divisorIva, 2, RoundingMode.HALF_UP);
                 subtotalParaMostrar = precioUnitarioParaMostrar.multiply(cantidad);
@@ -168,7 +171,7 @@ public class FacturaPDFGenerator {
         private BigDecimal subtotalConIva;
     }
 
-    public static String generarTextoQR(Factura fact) {
+    public static String generarTextoQR(Comprobante fact) {
         try {
             String urlBase = "https://www.afip.gob.ar/fe/qr/?p=";
             

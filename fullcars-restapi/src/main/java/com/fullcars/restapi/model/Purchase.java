@@ -5,6 +5,9 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
+
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import jakarta.persistence.CascadeType;
@@ -46,6 +49,7 @@ public class Purchase {
     private Provider provider;
 
     @JsonManagedReference
+    @Fetch(FetchMode.SUBSELECT)
     @OneToMany(mappedBy = "purchase", fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
     private List<PurchaseDetail> details = new ArrayList<>();
     

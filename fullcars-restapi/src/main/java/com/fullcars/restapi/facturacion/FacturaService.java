@@ -8,8 +8,10 @@ import java.nio.file.Paths;
 import java.rmi.ServerException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,266 +19,348 @@ import com.fullcars.restapi.dto.AfipAuth;
 import com.fullcars.restapi.dto.CAEResponse;
 import com.fullcars.restapi.dto.ContribuyenteData;
 import com.fullcars.restapi.dto.DatosFacturacion;
-import com.fullcars.restapi.event.SaleEvent;
 import com.fullcars.restapi.facturacion.enums.Conceptos;
 import com.fullcars.restapi.facturacion.enums.CondicionIva;
 import com.fullcars.restapi.facturacion.enums.Servicios;
 import com.fullcars.restapi.facturacion.enums.TiposComprobante;
+import com.fullcars.restapi.model.Comprobante;
+import com.fullcars.restapi.model.CreditNote;
+import com.fullcars.restapi.model.Customer;
+import com.fullcars.restapi.model.CustomerCredit;
 import com.fullcars.restapi.model.Factura;
 import com.fullcars.restapi.model.Sale;
+import com.fullcars.restapi.repository.ICreditNoteRepository;
+import com.fullcars.restapi.repository.ICustomerCreditRepository;
 import com.fullcars.restapi.repository.IFacturaRepository;
+import com.fullcars.restapi.service.CustomerService;
 import com.fullcars.restapi.service.SaleService;
 
 @Service
 public class FacturaService {
 
-	private final IFacturaRepository repo;
-	private final SaleService saleService;
-	private final ArcaTokenCacheService tokenService;
-	private final AfipConfig afipConfig;
-	private static final String RUTA_BASE_PDFS = "C:/SoftwareFullCars/FacturasEmitidas/";
-	
-	public FacturaService(IFacturaRepository repo, SaleService saleService, ArcaTokenCacheService tokenService, AfipConfig afipConfig) {
-		this.repo = repo;
-		this.saleService = saleService;
-		this.tokenService = tokenService;
-		this.afipConfig = afipConfig;
-	}
-	
-	public byte[] generarFactura(Long saleId, TiposComprobante tiposComprobante) throws Exception {
-		Sale sale = saleService.findByIdOrThrow(saleId);
-		
-		System.out.println(sale);
-		if(sale.getFactura() != null)
-			throw new RuntimeException("La venta ya posee una factura electrónica asociada.");
-		
-		DatosFacturacion datosFact = new DatosFacturacion(afipConfig.getCuit(), tiposComprobante, Long.parseLong(sale.getCustomer().getCuit()));
-		ContribuyenteData receptor = null;
-		if(datosFact.getTipoComprobante() == TiposComprobante.FACTURA_A) {
-			receptor = consultarContribuyente(tokenService.getTicket(Servicios.CONSTANCIA_INSCRIPCION), datosFact.getNumeroDocumento());
-			if (receptor.getCondicionIva() != CondicionIva.RESPONSABLE_INSCRIPTO) 
-				    throw new IllegalArgumentException(
-				        "Error Fiscal: La Factura A solo puede emitirse a Responsables Inscriptos. " +
-				        "El cliente actual es: " + receptor.getCondicionIva());
-		}else {
-			//por AHORA SOLO PUEDE SER tipo B
-			receptor = ContribuyenteData.builder()
-				.nombre("CONSUMIDOR FINAL")
-		        .direccion("S/D") // Sin Dirección o un guion "-"
-		        .localidad("")
-		        .provincia("")
-		        .codigoPostal("")
-		        .condicionIva(CondicionIva.CONSUMIDOR_FINAL)
-		        .build();
-		}
-		
-			
-		CAEResponse response = emitirCae(sale, datosFact);
-		//response.setCae("1234567");response.setFechaVencimiento("22221111");response.setNumeroComprobante(1L);response.setObservaciones("obs");
-		
-        Factura fact = mapearFactura(sale, datosFact, receptor, response);
-		
-        if (response != null && response.getCae() != null) {	
-            try {
-            	Factura saved = save(fact);
+    private static final String RUTA_BASE_PDFS = "C:/SoftwareFullCars/FacturasEmitidas/";
 
-            	sale.setFactura(saved);
-            	saleService.update(sale);
+    private final IFacturaRepository facturaRepository;
+    private final ICreditNoteRepository creditNoteRepository;
+    private final ICustomerCreditRepository customerCreditRepository;
+    private final SaleService saleService;
+    private final CustomerService customerService;
+    private final ArcaTokenCacheService tokenService;
+    private final AfipConfig afipConfig;
 
-            	byte[] pdfBytes = FacturaPDFGenerator.generarFacturaPDF(fact, datosFact.getAlicuota());
-	
-	            String pathGuardado = guardarPdfEnDisco(pdfBytes, generarNombreArchivo(fact));
-	            saved.setFileUrl(pathGuardado);
-	            save(saved);
-            	
-				return pdfBytes;
-				
-            } catch (Exception e) {
-				e.printStackTrace();
-				throw new Exception("CAE generado. Error al generar o guardar el PDF");
-			}
-        }else
-			throw new RuntimeException("No se pudo generar la factura electrónica.");
-	}
-
-	public File getFacturaPdf(Long saleId) throws ServerException {
-			Path filePath = Paths.get(repo.findFilePathBySaleId(saleId));
-			
-			if (filePath == null) 
-		        throw new ServerException("No hay Pdf Factura registrado.");
-
-		    File file = filePath.toFile();
-		    if (!file.exists()) 
-		    	throw new ServerException("El Pdf Factura no existe en el servidor");
-
-			return file;
-	}
-	
-	@Transactional
-	@EventListener
-	public void handleSaleEvent(SaleEvent e) {
-		System.err.println("Facuta Service Received SaleEvent !!!" + e.getSource());
-		//Sale sale = e.getEntity();
-		//if(e.getEventType().equals(EventType.DELETE))
-		//	deleteBySaleId(sale.getId());
-		//else if(e.getEventType().equals(EventType.INSERT) && sale.getSaleNumber() != null && !sale.getSaleNumber().isBlank())
-			//save(sale);
-	}
-	
-	@Transactional
-	public Factura save(Factura factura) {
-		return repo.save(factura);
-	}
-	
-	public Factura findById(Long id) {
-		return repo.findById(id).orElseThrow();
-	}
-	
-	public Factura findBySaleId(Long idSale) {
-		return repo.findBySaleId(idSale).orElseThrow();
-	}
-	
-	@Transactional
-	public void delete(Long id) {
-		repo.deleteById(id);
-	}
-	@Transactional
-	public void deleteBySaleId(Long idSale) {
-		repo.deleteBySaleId(idSale);
-	}
-
-	public boolean isSaleFacturada(Long idSale) {
-		return repo.findBySaleId(idSale).isPresent();
-	}
-	
-	public String getAfipData() {
-		StringBuilder sb = new StringBuilder();
-		//sb.append("AFIP DATA\n").append(afipConfig.getCuit()).append(afipConfig.getWsfev1Endpoint())
-		return tokenService.getTicket(Servicios.CONSTANCIA_INSCRIPCION).toString().concat(afipConfig.getWsfev1Endpoint());
-	}
-
-	private CAEResponse emitirCae(Sale sale, DatosFacturacion datosFact) throws Exception {
-		AfipAuth auth = tokenService.getTicket(Servicios.FACTURACION_ELECTRONICA);
-        long ultimoComp = WSFEV1Consultas.consultarUltimoComprobanteFEV1(
-        		auth,
-        		datosFact, 
-        		afipConfig.getWsfev1Endpoint(),
-        		afipConfig.getWsfev1ServiceUrl());
-        
-       return WSFEV1Service.generarCAE(
-        		auth,
-        		sale,
-        		datosFact,
-        		ultimoComp,
-        		afipConfig.getWsfev1Endpoint(),
-        		afipConfig.getWsfev1ServiceUrl());
+    public FacturaService(
+            IFacturaRepository facturaRepository,
+            ICreditNoteRepository creditNoteRepository,
+            ICustomerCreditRepository customerCreditRepository,
+            SaleService saleService,
+            CustomerService customerService,
+            ArcaTokenCacheService tokenService,
+            AfipConfig afipConfig) {
+        this.facturaRepository = facturaRepository;
+        this.creditNoteRepository = creditNoteRepository;
+        this.customerCreditRepository = customerCreditRepository;
+        this.saleService = saleService;
+        this.customerService = customerService;
+        this.tokenService = tokenService;
+        this.afipConfig = afipConfig;
     }
-	
-	private static Factura mapearFactura(Sale sale, DatosFacturacion datos, ContribuyenteData contribuyente,
-			CAEResponse caeResponse) {
 
-		Factura factura = new Factura();
+    @Transactional
+    public byte[] generarFactura(Long saleId, TiposComprobante tiposComprobante) throws Exception {
+        if (!tiposComprobante.isFactura()) {
+            throw new IllegalArgumentException("El tipo de comprobante solicitado no es una factura.");
+        }
 
-		factura.setSale(sale); 
+        Sale sale = saleService.findByIdOrThrow(saleId);
+        if (sale.getFactura() != null) {
+            throw new RuntimeException("La venta ya posee una factura electronica asociada.");
+        }
 
-		factura.setCuitEmisor(datos.getCuitEmisor());
-		factura.setPuntoVenta(datos.getPuntoVenta());
-		factura.setTipoComprobante(datos.getTipoComprobante().getCodigo());
-		//caeresponse mas abajo(numCompr tmb)
-		factura.setFechaEmision(LocalDate.now());
-		factura.setConcepto(datos.getConcepto()); 
-		factura.setCuitCliente(datos.getNumeroDocumento()); // El DNI/CUIT viene de DatosFacturacion
-		factura.setTipoDocCliente(datos.getTipoDocumento().getCodigo());
+        DatosFacturacion datosFact = new DatosFacturacion(afipConfig.getCuit(), tiposComprobante,
+                Long.parseLong(sale.getCustomer().getCuit()));
+        ContribuyenteData receptor = resolverReceptor(datosFact);
+        CAEResponse response = emitirCaeFactura(sale, datosFact);
+        Factura factura = mapearComprobante(new Factura(), sale, datosFact, receptor, response, null);
 
-		// Datos visuales del cliente (Desde ContribuyenteData)
-		factura.setRazonSocialCliente(contribuyente.getNombre());
-		factura.setDomicilioCliente(contribuyente.getDomicilioComercialFormateado()); // Usando el helper que creamos
-		factura.setCondicionIvaCliente(contribuyente.getCondicionIva());
+        if (response != null && response.getCae() != null) {
+            try {
+                Factura saved = facturaRepository.save(factura);
+                sale.setFactura(saved);
+                saleService.update(sale);
 
-		// 4. Cálculos de Importes (Basado en Sale y la alícuota de DatosFacturacion)
-		BigDecimal totalVenta = sale.getTotal().setScale(2, RoundingMode.HALF_UP);
-		BigDecimal divisor = BigDecimal.ONE.add(datos.getAlicuota().getMultiplicador());// 1.21
-		BigDecimal neto = totalVenta.divide(divisor, 2, RoundingMode.HALF_UP);
-		// Es más seguro restar para evitar diferencias de centavos por redondeo
-		BigDecimal importeIva = totalVenta.subtract(neto);
+                byte[] pdfBytes = FacturaPDFGenerator.generarFacturaPDF(saved, sale, datosFact.getAlicuota());
+                saved.setFileUrl(guardarPdfEnDisco(pdfBytes, generarNombreArchivo(saved)));
+                facturaRepository.save(saved);
+                return pdfBytes;
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new Exception("CAE generado. Error al generar o guardar el PDF");
+            }
+        }
 
-		factura.setImpNeto(neto);
-		factura.setImpIva(importeIva);
-		factura.setImpTotal(totalVenta);
+        throw new RuntimeException("No se pudo generar la factura electronica: "
+                + (response != null ? response.getError() : "sin respuesta de ARCA"));
+    }
 
-		/* Seteo de valores en 0 por defecto (ya que DatosFacturacion no los provee dinámicamente)
-		factura.setImpNoGravado(BigDecimal.ZERO);
-		factura.setImpExento(BigDecimal.ZERO);
-		factura.setImpTributos(BigDecimal.ZERO);*/
+    @Transactional
+    public byte[] generarNotaCreditoBySale(Long saleId, BigDecimal monto) throws Exception {
+        Factura facturaAsociada = obtenerFacturaOriginal(saleId);
+        Sale sale = saleService.findByFacturaIdOrThrow(facturaAsociada.getId());
+        return generarNotaCredito(facturaAsociada, sale, monto);
+    }
 
-		// 5. Respuesta de AFIP (Desde CAEResponse)
-		if (caeResponse != null) {
-			factura.setNumeroComprobante(caeResponse.getNumeroComprobante());
-			factura.setCae(caeResponse.getCae());
+    private byte[] generarNotaCredito(Factura facturaAsociada, Sale sale, BigDecimal monto) throws Exception {
+        if (creditNoteRepository.findFirstByComprobanteAsociadoIdOrderByIdDesc(facturaAsociada.getId()).isPresent()) {
+            throw new RuntimeException("La factura ya posee una nota de credito electronica asociada.");
+        }
+        
+        //if (monto == null) monto = facturaOriginal.getImpTotal();
+        if (monto.compareTo(BigDecimal.ZERO) <= 0
+                || monto.compareTo(facturaAsociada.getImpTotal()) > 0) {
+            throw new RuntimeException(
+                    "El monto de la nota de credito debe ser mayor a 0 y no exceder el total de la factura original.");
+        }
 
-			// Parseo de fecha String (yyyyMMdd) a LocalDate
-			if (caeResponse.getFechaVencimiento() != null) {
-				DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
-				factura.setVtoCae(LocalDate.parse(caeResponse.getFechaVencimiento(), formatter));
-			}
+        TiposComprobante tipoNotaCredito = TiposComprobante
+                .notaCreditoPara(TiposComprobante.fromCodigo(facturaAsociada.getTipoComprobante()));
+        DatosFacturacion datosFact = new DatosFacturacion(afipConfig.getCuit(), tipoNotaCredito,
+        		facturaAsociada.getCuitCliente());
+        ContribuyenteData receptor = receptorDesdeComprobante(facturaAsociada);
 
-			factura.setObservaciones(caeResponse.getObservaciones());
+        CAEResponse response = emitirCaeNC(sale, datosFact, facturaAsociada, monto);
+        CreditNote creditNote = mapearComprobante(new CreditNote(), sale, datosFact, receptor, response, monto);
+        creditNote.setComprobanteAsociado(facturaAsociada);
 
-			// Determinar resultado (Si hay CAE es Aprobado, sino Rechazado)
-			String resultado = (caeResponse.getCae() != null && !caeResponse.getCae().isEmpty()) ? "A" : "R";
-			factura.setResultadoAfip(resultado);
-		}
+        if (response != null && response.getCae() != null) {
+            try {
+                CreditNote saved = creditNoteRepository.save(creditNote);
 
-		// 6. Fechas adicionales
-		// Si el concepto es Servicios (2) o Productos y Servicios (3), se requiere vto pago.
-		// Por defecto ponemos hoy o calculamos 10 días.
-		if (datos.getConcepto() != Conceptos.PRODUCTOS) {
-			factura.setFechaVencimientoPago(LocalDate.now().plusDays(30)); // Lógica de negocio
-		} else {
-			factura.setFechaVencimientoPago(null);
-		}
+                CustomerCredit customerCredit = crearCreditoCliente(sale.getCustomer(), saved);
+                saved.setCustomerCredit(customerCredit);
 
-		return factura;
-	}
-	
-	private ContribuyenteData consultarContribuyente(AfipAuth auth, long idBuscado) throws ServerException {
-		try {
-			return AfipPadronClient.getPersonaV2(auth.getToken(), auth.getSign(), afipConfig.getCuit(), idBuscado, afipConfig.getPadronEndpoint());
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new ServerException("Error al consultar el padrón de AFIP");
-		}
-	}
-	
-	// --- Métodos Auxiliares ---
-	private String guardarPdfEnDisco(byte[] contenido, String nombreArchivo) throws Exception {
-	    try {
-	        // Organizar por año es buena práctica para no saturar una carpeta
-	        String anio = String.valueOf(java.time.LocalDate.now().getYear());
-	        java.nio.file.Path directorioDestino = java.nio.file.Paths.get(RUTA_BASE_PDFS, anio);
-	        
-	        if (!java.nio.file.Files.exists(directorioDestino)) 
-	            java.nio.file.Files.createDirectories(directorioDestino);
+                byte[] pdfBytes = FacturaPDFGenerator.generarFacturaPDF(saved, sale, datosFact.getAlicuota());
+                saved.setFileUrl(guardarPdfEnDisco(pdfBytes, generarNombreArchivo(saved)));
+                creditNoteRepository.save(saved);
+                return pdfBytes;
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new Exception("CAE generado. Error al generar o guardar el PDF de nota de credito");
+            }
+        }
 
-	        java.nio.file.Path archivoDestino = directorioDestino.resolve(nombreArchivo);
-	        
-	        // Escribir el archivo
-	        java.nio.file.Files.write(archivoDestino, contenido);
-	        
-	        return archivoDestino.toAbsolutePath().toString();
-	    } catch (java.io.IOException e) {
-	        e.printStackTrace();
-	        throw new Exception("Error al intentar guardar el PDF en disco: " + e.getMessage());
-	    }
-	}
+        throw new RuntimeException("No se pudo generar la nota de credito electronica: "
+                + (response != null ? response.getError() : "sin respuesta de ARCA"));
+    }
 
-	private String generarNombreArchivo(Factura fact) {
-	    // Formato: TIPO-PTOVTA-NUMERO.pdf (Ej: FA-00003-00000123.pdf)
-	    return String.format("F_%c_%05d-%08d.pdf", 
-	            TiposComprobante.fromCodigo(fact.getTipoComprobante()).getTipo(), 
-	            fact.getPuntoVenta(), 
-	            fact.getNumeroComprobante());
-	}
+    public File getFacturaPdf(Long saleId) throws ServerException {
+        Factura factura = obtenerFacturaOriginal(saleId);
+        Path filePath = Paths.get(factura.getFileUrl());
 
-	
+        File file = filePath.toFile();
+        if (!file.exists()) {
+            throw new ServerException("El PDF de factura no existe en el servidor");
+        }
+
+        return file;
+    }
+
+    public Factura findBySaleId(Long idSale) {
+        return obtenerFacturaOriginal(idSale);
+    }
+
+    public boolean isSaleFacturada(Long idSale) {
+        return saleService.findFacturaBySaleId(idSale).isPresent();
+    }
+
+    public boolean isNotaCreditoEmitida(Long saleId) {
+        return saleService.findFacturaBySaleId(saleId)
+                .map(factura -> creditNoteRepository.findFirstByComprobanteAsociadoIdOrderByIdDesc(factura.getId()).isPresent())
+                .orElse(false);
+    }
+
+    @Transactional(readOnly = true)
+    public CreditNote findNotaCreditoBySaleId(Long saleId) {
+        Factura factura = obtenerFacturaOriginal(saleId);
+        return creditNoteRepository.findFirstByComprobanteAsociadoIdOrderByIdDesc(factura.getId())
+                .orElseThrow(() -> new RuntimeException("No se encontró nota de crédito para la venta " + saleId));
+    }
+
+    public String getAfipData() {
+        return tokenService.getTicket(Servicios.CONSTANCIA_INSCRIPCION).toString()
+                .concat(afipConfig.getWsfev1Endpoint());
+    }
+
+    private CustomerCredit crearCreditoCliente(Customer customer, CreditNote creditNote) {
+        CustomerCredit customerCredit = CustomerCredit.builder()
+                .customer(customer)
+                .amount(creditNote.getImpTotal())
+                .description("Saldo a favor por nota de credito " + generarNumeroComprobante(creditNote))
+                .build();
+        customerCredit = customerCreditRepository.save(customerCredit);
+
+        customer.setCreditBalance(customer.getCreditBalance().add(creditNote.getImpTotal()));
+        customerService.save(customer);
+        return customerCredit;
+    }
+
+    //===============================   METODOS AUX ARCA    ============================================================================
+
+    private CAEResponse emitirCaeFactura(Sale sale, DatosFacturacion datosFact) throws Exception{
+    	return emitirCaeNC(sale, datosFact, null, null);
+    }
+
+    private CAEResponse emitirCaeNC(Sale sale, DatosFacturacion datosFact, Factura comprobanteAsociado,
+            BigDecimal totalOverride) throws Exception {
+        AfipAuth auth = tokenService.getTicket(Servicios.FACTURACION_ELECTRONICA);
+        long ultimoComp = WSFEV1Consultas.consultarUltimoComprobanteFEV1(
+                auth,
+                datosFact,
+                afipConfig.getWsfev1Endpoint(),
+                afipConfig.getWsfev1ServiceUrl());
+
+        return WSFEV1Service.generarCAE(
+                auth,
+                sale,
+                datosFact,
+                ultimoComp,
+                afipConfig.getWsfev1Endpoint(),
+                afipConfig.getWsfev1ServiceUrl(),
+                comprobanteAsociado,
+                totalOverride);
+    }
+
+    private ContribuyenteData resolverReceptor(DatosFacturacion datosFact) throws ServerException {
+        if (datosFact.getTipoComprobante().getTipo() == 'A') {
+            ContribuyenteData receptor = consultarContribuyente(
+                    tokenService.getTicket(Servicios.CONSTANCIA_INSCRIPCION),
+                    datosFact.getNumeroDocumento());
+            if (receptor.getCondicionIva() != CondicionIva.RESPONSABLE_INSCRIPTO) {
+                throw new IllegalArgumentException(
+                        "Error Fiscal: La Factura A solo puede emitirse a Responsables Inscriptos. "
+                                + "El cliente actual es: " + receptor.getCondicionIva());
+            }
+            return receptor;
+        }
+
+        return ContribuyenteData.builder()
+                .nombre("CONSUMIDOR FINAL")
+                .direccion("S/D")
+                .localidad("")
+                .provincia("")
+                .codigoPostal("")
+                .condicionIva(CondicionIva.CONSUMIDOR_FINAL)
+                .build();
+    }
+
+    private Factura obtenerFacturaOriginal(Long saleId) {
+        return saleService.findFacturaBySaleId(saleId)
+                .orElseThrow(() -> new RuntimeException("La venta no posee factura electronica para asociar."));
+    }
+
+    private static ContribuyenteData receptorDesdeComprobante(Comprobante comprobante) {
+        return ContribuyenteData.builder()
+                .nombre(comprobante.getRazonSocialCliente())
+                .direccion(comprobante.getDomicilioCliente())
+                .localidad("")
+                .provincia("")
+                .codigoPostal("")
+                .condicionIva(comprobante.getCondicionIvaCliente())
+                .build();
+    }
+
+    private static <T extends Comprobante> T mapearComprobante(T comprobante, Sale sale, DatosFacturacion datos,
+            ContribuyenteData contribuyente, CAEResponse caeResponse, BigDecimal totalOverride) {
+
+        comprobante.setCuitEmisor(datos.getCuitEmisor());
+        comprobante.setPuntoVenta(datos.getPuntoVenta());
+        comprobante.setTipoComprobante(datos.getTipoComprobante().getCodigo());
+        comprobante.setFechaEmision(LocalDate.now());
+        comprobante.setConcepto(datos.getConcepto());
+        comprobante.setCuitCliente(datos.getNumeroDocumento());
+        comprobante.setTipoDocCliente(datos.getTipoDocumento().getCodigo());
+        comprobante.setRazonSocialCliente(contribuyente.getNombre());
+        comprobante.setDomicilioCliente(contribuyente.getDomicilioComercialFormateado());
+        comprobante.setCondicionIvaCliente(contribuyente.getCondicionIva());
+
+        BigDecimal totalVenta = (totalOverride != null)
+                ? totalOverride.setScale(2, RoundingMode.HALF_UP)
+                : sale.getTotal().setScale(2, RoundingMode.HALF_UP);
+        BigDecimal divisor = BigDecimal.ONE.add(datos.getAlicuota().getMultiplicador());
+        BigDecimal neto = totalVenta.divide(divisor, 2, RoundingMode.HALF_UP);
+        BigDecimal importeIva = totalVenta.subtract(neto);
+
+        comprobante.setImpNeto(neto);
+        comprobante.setImpIva(importeIva);
+        comprobante.setImpTotal(totalVenta);
+
+        if (caeResponse != null) {
+            comprobante.setNumeroComprobante(caeResponse.getNumeroComprobante());
+            comprobante.setCae(caeResponse.getCae());
+
+            if (caeResponse.getFechaVencimiento() != null) {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+                comprobante.setVtoCae(LocalDate.parse(caeResponse.getFechaVencimiento(), formatter));
+            }
+
+            comprobante.setObservaciones(caeResponse.getObservaciones());
+            String resultado = (caeResponse.getCae() != null && !caeResponse.getCae().isEmpty()) ? "A" : "R";
+            comprobante.setResultadoAfip(resultado);
+        }
+
+        if (datos.getConcepto() != Conceptos.PRODUCTOS) {
+            comprobante.setFechaVencimientoPago(LocalDate.now().plusDays(30));
+        } else {
+            comprobante.setFechaVencimientoPago(null);
+        }
+
+        return comprobante;
+    }
+
+    private ContribuyenteData consultarContribuyente(AfipAuth auth, long idBuscado) throws ServerException {
+        try {
+            return AfipPadronClient.getPersonaV2(auth.getToken(), auth.getSign(), afipConfig.getCuit(), idBuscado,
+                    afipConfig.getPadronEndpoint());
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new ServerException("Error al consultar el padron de AFIP");
+        }
+    }
+
+    private String guardarPdfEnDisco(byte[] contenido, String nombreArchivo) throws Exception {
+        try {
+            String anio = String.valueOf(java.time.LocalDate.now().getYear());
+            java.nio.file.Path directorioDestino = java.nio.file.Paths.get(RUTA_BASE_PDFS, anio);
+
+            if (!java.nio.file.Files.exists(directorioDestino)) {
+                java.nio.file.Files.createDirectories(directorioDestino);
+            }
+
+            java.nio.file.Path archivoDestino = directorioDestino.resolve(nombreArchivo);
+            java.nio.file.Files.write(archivoDestino, contenido);
+
+            return archivoDestino.toAbsolutePath().toString();
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
+            throw new Exception("Error al intentar guardar el PDF en disco: " + e.getMessage());
+        }
+    }
+
+    private String generarNombreArchivo(Comprobante comprobante) {
+        TiposComprobante tipo = TiposComprobante.fromCodigo(comprobante.getTipoComprobante());
+        String prefijo = tipo.isNotaCredito() ? "NC" : "F";
+        return String.format("%s_%c_%05d-%08d.pdf",
+                prefijo,
+                tipo.getTipo(),
+                comprobante.getPuntoVenta(),
+                comprobante.getNumeroComprobante());
+    }
+
+    private String generarNumeroComprobante(Comprobante comprobante) {
+        TiposComprobante tipo = TiposComprobante.fromCodigo(comprobante.getTipoComprobante());
+        return String.format("%s %c %05d-%08d",
+                tipo.isNotaCredito() ? "NC" : "F",
+                tipo.getTipo(),
+                comprobante.getPuntoVenta(),
+                comprobante.getNumeroComprobante());
+    }
 }

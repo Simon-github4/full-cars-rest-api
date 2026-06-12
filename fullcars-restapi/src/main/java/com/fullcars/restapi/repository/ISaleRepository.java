@@ -2,9 +2,7 @@ package com.fullcars.restapi.repository;
 
 import java.time.LocalDate;
 import java.util.List;
-
-import java.math.BigDecimal;
-import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.fullcars.restapi.model.Factura;
 import com.fullcars.restapi.model.Sale;
 
 import jakarta.transaction.Transactional;
@@ -62,4 +61,9 @@ public interface ISaleRepository extends JpaRepository<Sale, Long>{
         ORDER BY s.date ASC
         """)
     List<Sale> findByCustomerIdOrderByDate(@Param("customerId") Long customerId);
+
+    Optional<Sale> findByFacturaId(Long facturaId);
+
+    @Query("SELECT s.factura FROM Sale s WHERE s.id = :saleId")
+    Optional<Factura> findFacturaBySaleId(@Param("saleId") Long saleId);
 }

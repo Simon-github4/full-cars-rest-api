@@ -3,8 +3,8 @@ package com.fullcars.restapi.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.fullcars.restapi.model.Factura;
+import com.fullcars.restapi.model.Comprobante;
 
 @Repository
-public interface IFacturaRepository extends JpaRepository<Factura, Long> {
+public interface IComprobanteRepository extends JpaRepository<Comprobante, Long> {
 }

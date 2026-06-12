@@ -6,6 +6,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 import org.hibernate.annotations.Where;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -54,11 +56,11 @@ public class Sale {
     
     private String remitoPath;
     
-    @JsonManagedReference
     @OneToOne(optional = true)// null es NO facturado
     private Factura factura;
     
     @JsonManagedReference
+    @Fetch(FetchMode.SUBSELECT)
     @OneToMany(mappedBy = "sale", fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
     private List<SaleDetail> details = new ArrayList<>();
     
